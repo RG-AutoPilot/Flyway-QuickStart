@@ -1,0 +1,284 @@
+Flyway Enterprise AI library - file 22 of 31
+The unhappy path - reading Flyway errors, a field guide to failures and drills
+Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
+
+What this covers: What to do when a Flyway run fails, so everyone works from one playbook before it first happens in production: how to read a Flyway error, a five-question triage, the first five minutes of a production failure, fourteen scenario cards for SQL Server on-premises and Azure SQL with GitHub Actions, and seven drills that run only on a sandbox or local database.
+
+Not in this file: snapshot, drift, undo, repair and restore decisions in depth (file 14), version numbering and out-of-order rules (file 09), accounts and connection settings (file 10), workflow design (files 11 and 12), install, sign-in and connectivity faults (file 23), the drill mode script (file 27).
+
+Contents:
+1. How to read a Flyway error
+2. Size it: five questions
+3. The first five minutes in production
+4. Where the evidence is
+5. Scenario cards
+6. Drills on a sandbox
+7. In daily use
+8. Limits
+9. Instructions for the AI assistant using this file
+
+## 1. How to read a Flyway error
+
+Read in this order: which environment (Flyway prints the one it works on from engine 13.10.1; otherwise read the job's settings), the last migration that started, Flyway's `ERROR:` text with its error code, then the database's own message (for SQL Server, the error number and text).
+
+| Evidence | How to get it |
+|---|---|
+| Exit code | Redgate documents two: `1` for a failure that isn't categorized, `35` for any licensing failure. Don't branch on other values |
+| Error code | `-outputType=json` puts errors in the JSON payload instead of on stderr, with the code in `error.errorCode` (Redgate's GitHub actions read it there). Branch on codes, not message text |
+| Debug output | Rerun the same command with `-X`; add `-outputFile=<path>` when output is long |
+| Schema history | `flyway info`, read-only. It doesn't check checksums, so add `flyway validate` when one is in doubt |
+
+The engine's message wording below comes from its source and can change between versions. Match on the code.
+
+| Message starts | Code |
+|---|---|
+| "Migration checksum mismatch for migration version ..." | `CHECKSUM_MISMATCH` (`DESCRIPTION_MISMATCH` for a renamed file) |
+| "Detected resolved migration not applied to database: ..." | `RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED` |
+| "Found more than one migration with version ..." | `DUPLICATE_VERSIONED_MIGRATION` |
+| "Detected failed migration to version ..." | `FAILED_VERSIONED_MIGRATION` (from `validate`; `migrate` says "Schema ... contains a failed migration to version ...") |
+| "Detected applied migration not resolved locally: ..." | `APPLIED_VERSIONED_MIGRATION_NOT_RESOLVED` |
+
+Two more: `CHECK_DRIFT_DETECTED` (a `check -drift` with `failOnDrift` found differences) and `NON_EMPTY_SCHEMA_WITHOUT_SCHEMA_HISTORY_TABLE` (a non-empty database with no history table). Redgate's "Exit codes and error codes" page lists the codes by category. Remove connection strings, tokens and server names before pasting a log anywhere.
+
+## 2. Size it: five questions
+
+Answer in order before anyone fixes anything.
+
+| Question | How |
+|---|---|
+| 1. Did anything change? | `flyway info` on the failed environment. A Failed row, an unexpected applied migration or a new baseline row means history is touched |
+| 2. Is production affected? | Production's history, production's application, or neither. A red pull request build affects nobody |
+| 3. Where do I look? | Section 4 |
+| 4. What do I do? | The matching card's Do line, decided by a person |
+| 5. What must I not do? | The card's Don't line. Always: no rerun loops, no hand-run SQL in production, no automated `repair` |
+
+History touched in production plus an unhealthy application is an incident: the DBA and release owner decide together using file 14. A failed transactional migration rolls back and leaves no Failed row.
+
+## 3. The first five minutes in production
+
+1. Stop. Don't re-run the job, start another release or touch the database. Cancel queued runs for that environment.
+2. Size it with section 2, using the read-only check account.
+3. Capture the run URL, commit, job log, report artifact, exit code and time in the incident ticket (`<ticket-key>`). Report artifacts from Redgate's actions keep seven days by default.
+4. Name one owner and one channel. The DBA joins if history is touched.
+5. Match a card, then decide the path with file 14. `repair`, `undo`, restore and any production change wait for a person's explicit decision.
+
+## 4. Where the evidence is
+
+| Where it ran | Where to look |
+|---|---|
+| GitHub Actions with `red-gate/flyway-actions` | The job log; deploy outputs `exit-code`, `drift-detected`, `migrations-applied`, `schema-version`; the deployment report and drift resolution artifacts |
+| SQL Server, on-premises or Azure | The history table's `success` column; the session and lock views below; the DBA's own monitoring |
+| The runner | The runner label the job used, and whether it can reach the server (file 23) |
+
+> Not from Redgate docs — starting point, validate in your environment.
+
+```sql
+-- Who is blocked, who blocks them, and which sessions are Flyway's.
+-- Needs permission to view server or database state; ask the DBA team.
+SELECT r.session_id, r.blocking_session_id, r.wait_type, r.wait_time AS wait_ms,
+       s.login_name, s.program_name, DB_NAME(r.database_id) AS db,
+       LEFT(t.text, 120) AS sql_text
+FROM sys.dm_exec_requests AS r
+JOIN sys.dm_exec_sessions AS s ON s.session_id = r.session_id
+CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) AS t
+WHERE r.blocking_session_id <> 0 OR s.program_name IN ('Redgate_Flyway', 'Flyway by Redgate');
+```
+
+From engine 13.8.0 Flyway connections report the application name `Redgate_Flyway`, which SQL Server shows as `program_name`; older engines report `Flyway by Redgate`. Ending a session is a DBA decision.
+
+## 5. Scenario cards
+
+Each card: Symptom, Means, Blast radius, Do, Don't, Prevent.
+
+### Card 1. Checksum mismatch: someone edited an applied migration
+- Symptom: validation stops with `CHECKSUM_MISMATCH`.
+- Means: an applied migration's file no longer matches what ran: edited, reformatted or re-saved.
+- Blast radius: nothing ran.
+- Do: restore the original file and put the change in a new migration. If the edit is proven cosmetic, a person runs `repair` once per affected environment (file 14).
+- Don't: run `repair` to make the message go away, or put it in a pipeline. If the file reached production, run a drift check first.
+- Prevent: a pull request check that rejects edits to merged migrations (file 09).
+
+### Card 2. Resolved migration not applied, or out of order
+- Symptom: `RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED`; `flyway info` shows a lower version as Ignored.
+- Means: a lower-numbered migration merged after a higher one had already run.
+- Blast radius: nothing ran; the release is blocked.
+- Do: renumber the migration if it hasn't reached a shared environment; otherwise follow file 09.
+- Don't: enable `outOfOrder` or set `ignoreMigrationPatterns` in production to get past it, though the error message suggests both. Projects from `flyway init` or Desktop can already hold `outOfOrder = true`; read your `flyway.toml`.
+- Prevent: the file 09 pull request check for duplicate or lower versions.
+
+### Card 3. Version collision from two teams
+- Symptom: `DUPLICATE_VERSIONED_MIGRATION`; the message lists both offending files.
+- Means: two branches generated the same version.
+- Blast radius: nothing ran.
+- Do: the team whose migration has not reached a shared environment renumbers it, then reruns the checks.
+- Don't: delete either file, or rename one that has already run (that causes card 1).
+- Prevent: timestamped versions and the collision check in file 09.
+
+### Card 4. Failed migration, partially applied
+- Symptom: `flyway info` shows Failed; the next `migrate` stops with "contains a failed migration to version ..." and `validate` with `FAILED_VERSIONED_MIGRATION`.
+- Means: a migration that ran outside a transaction, for example one containing `ALTER DATABASE` (or a mixed script with `mixed = true`), failed part-way and kept its earlier statements.
+- Blast radius: history touched.
+- Do: inspect which statements took effect, clean up by hand or fix forward, then a person runs `repair`, then `migrate`. Redgate's documented fix is to remove incomplete changes, then run `repair`.
+- Don't: retry from the top, or use `undo` as clean-up. Undo assumes the migration fully succeeded, and after a `repair` a bare `undo` reverses the previous good migration.
+- Prevent: each non-transactional statement in its own migration (file 14, section 9).
+
+### Card 5. Drift detected before release
+- Symptom: `CHECK_DRIFT_DETECTED`, or the deploy action reports `drift-detected` true. Nothing deployed.
+- Means: someone changed the target outside the pipeline since its last snapshot. Redgate's `migrations/deploy` action always runs a drift check first and fails on any drift; unlike the checks action, it has no `fail-on-drift` input.
+- Blast radius: nothing deployed; the gate worked.
+- Do: one decision per object (file 14, section 6): incorporate, revert or accept, each by a person.
+- Don't: rerun with `skip-drift-check: true` to ship without a recorded decision. If a person decides to skip once, record why in the ticket and remove it in the next commit.
+- Prevent: emergency changes through the hotfix path (file 15) and a scheduled drift job.
+
+### Card 6. Blocked by locks or timeouts on a busy table
+- Symptom: the migration hangs, or fails with a lock time-out message.
+- Means: the change waits behind application locks, or its own locks block the application. SQL Server's default lock wait has no limit.
+- Blast radius: a transactional migration rolls back when a timeout fires; with no timeout set, application traffic can queue behind it.
+- Do: run the section 4 query; the DBA decides whether to wait or end a blocking session; redeploy in a quiet window.
+- Don't: end sessions from the pipeline, or loop retries.
+- Prevent: a low `SET LOCK_TIMEOUT` (milliseconds) in a `beforeEachMigrate.sql` callback. Redgate's docs don't say which connection each callback uses; Flyway's engine source runs `beforeEachMigrate` on the migration's own connection, while `beforeMigrate` uses a separate connection, so a setting made there doesn't reach the migrations. Prove it in the lock drill before relying on it. `ALTER DATABASE` ignores `SET LOCK_TIMEOUT`. One deployment per environment at a time, using a GitHub `concurrency` group (file 12).
+
+### Card 7. Missing object referenced from another database
+- Symptom: an invalid or missing object error for a name in another database, in one environment only.
+- Means: the other database is behind, or the environment lacks that database or synonym. Flyway deploys one database per environment definition.
+- Blast radius: a transactional migration rolled back.
+- Do: confirm the other database has the object, deploy the dependency first, rerun.
+- Don't: create stub objects in production.
+- Prevent: declare cross-database order in the release plan (files 09 and 11).
+
+### Card 8. Permission denied for the deploy account
+- Symptom: SQL Server reports a permission error naming a statement or object.
+- Means: the deploy account lacks a right. Redgate lists CREATE, ALTER and DROP on managed schemas and INSERT, UPDATE and DELETE on the history table; read-only checks need metadata read and SELECT on the history table.
+- Blast radius: a transactional migration rolled back.
+- Do: the DBA grants through an approved change; rerun.
+- Don't: switch the pipeline to an admin account.
+- Prevent: the account matrix in file 10, tested in the POC.
+
+### Card 9. Azure SQL authentication token expired
+- Symptom: a login failure in an Azure SQL environment, at the start or mid-run on a long job.
+- Means: the access token, service principal secret or federated login session has expired, or the identity is not a database user.
+- Blast radius: nothing ran, or the connection dropped and the server rolled back the open transaction (confirm with `flyway info`).
+- Do: sign in again in the deploy job, check secret expiry, verify with `flyway info`.
+- Don't: paste a token into `flyway.toml` or a workflow file.
+- Prevent: fetch the token inside the job that deploys, just before the step; Microsoft gives access tokens 60 to 90 minutes. For runs that can last longer, use a service principal with a secret, or a managed identity on Azure-hosted runners, both shown in Redgate's Entra ID tutorial (files 10, 12, 23).
+
+### Card 10. Runner can't reach the on-premises server
+- Symptom: a connection timeout or refusal before any migration.
+- Means: a GitHub-hosted runner can't reach the private network, or a self-hosted runner sits in the wrong network, behind a firewall, or has a DNS or TLS fault.
+- Blast radius: nothing ran.
+- Do: test from the runner itself; file 23, then file 12 for runner design.
+- Don't: open the server to the internet for one release.
+- Prevent: deploy jobs pinned to a `<runner-label>` inside the network.
+
+### Card 11. Baseline mismatch on a new environment
+- Symptom: `NON_EMPTY_SCHEMA_WITHOUT_SCHEMA_HISTORY_TABLE`; or a deploy "succeeds" but applies little, and `flyway info` shows a baseline row.
+- Means: the database was built outside Flyway, or the baseline version doesn't match its real state. Redgate's `migrations/deploy` action defaults `baseline-on-migrate` to `true`, so it baselines silently.
+- Blast radius: history created; migrations below the baseline never run.
+- Do: choose the baseline version deliberately (file 07). If the wrong database was baselined, the DBA decides about the history table.
+- Don't: run `clean` to start again.
+- Prevent: `baseline-on-migrate: 'false'` on deploy steps and an explicit baseline per environment.
+
+### Card 12. A hotfix applied through the old script runner
+- Symptom: a drift report lists objects absent from source, or a migration fails because an object exists.
+- Means: an out-of-band change with no Flyway history row.
+- Blast radius: the environment differs from source; state-based deploys would revert it.
+- Do: bring it into source control and record it as applied (file 14, section 6), then keep the old runner's package record as evidence (file 17).
+- Don't: re-run the script through Flyway, or edit applied migrations to add `IF NOT EXISTS`.
+- Prevent: the emergency path through the pipeline (file 15) and a scheduled drift job.
+
+### Card 13. SqlPackage published to a Flyway-managed database
+- Symptom: after an SSDT release, the next Flyway run fails with `NON_EMPTY_SCHEMA_WITHOUT_SCHEMA_HISTORY_TABLE` or `flyway info` shows no history, or the next drift check lists many objects.
+- Means: a `sqlpackage /Action:Publish` ran against a database Flyway already manages. A publish with `DropObjectsNotInSource=True` (a Microsoft publish option) can drop `flyway_schema_history`, because that table isn't in the SQL project.
+- Blast radius: schema changed outside Flyway; history possibly gone. With Redgate's deploy action, `baseline-on-migrate` defaults to `true`, so the next run can silently write a fresh baseline over the problem (card 11).
+- Do: stop every pipeline for that database. The DBA restores the history table from a backup, or a person re-baselines deliberately after a diff shows what the database holds (files 07 and 14).
+- Don't: let the next pipeline run baseline it, or run `clean`.
+- Prevent: remove the SqlPackage publish step, and the publishing account's write rights, the day an environment is baselined (file 06). Set `baseline-on-migrate: 'false'` on deploy steps.
+
+### Card 14. Encoding breaks the checksum
+- Symptom: `Unable to calculate checksum` with `MalformedInputException: Input length = 1`, often in the first week of a proof of concept.
+- Means: the script is saved as UTF-16. SSMS saves new scripts as UTF-16 by default, and older SQL Compare and SQL Data Compare defaults did too; Flyway reads UTF-8 unless `encoding` says otherwise.
+- Blast radius: nothing ran.
+- Do: re-save the file as UTF-8 and rerun. If the migration has already run anywhere, re-encoding changes its checksum, which is card 1's decision.
+- Don't: leave `detectEncoding` on as a permanent fix. A file it can't detect is read with the configured encoding without an error, so characters can be corrupted silently.
+- Prevent: change the SSMS new-query template and SQL Compare's script encoding to UTF-8, and add a pull request check that fails on a UTF-16 byte order mark in `migrations/`.
+
+## 6. Drills on a sandbox
+
+Run drills only on a local SQL Server container or a throwaway database on a sandbox server, from a scratch project outside your team's repository. Never on CI, `build`, `test`, `uat`, `production` or a shared development database, and never through the shared pipeline. Drills that use `check -drift`, `snapshot` or `undo` need your normal Flyway Enterprise sign-in (file 04).
+
+> Not from Redgate docs — starting point, validate in your environment.
+
+```bash
+docker run --name flyway-drill -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=<password>" -p 1433:1433 -d mcr.microsoft.com/mssql/server:<tag>
+# create an empty database named drill, then give the scratch flyway.toml an
+# [environments.drill] block: url = "jdbc:sqlserver://localhost:1433;databaseName=drill;encrypt=true;trustServerCertificate=true"
+# Reset after every drill: docker rm -f flyway-drill
+```
+
+The scratch project is the only place `cleanDisabled = false` is allowed. Set `mixed = true` under `[flyway]` in it for the failed-migration drill, and note what your team's `flyway.toml` holds. Say the drill name to start: "Run drill: checksum mismatch", "version collision", "failed migration", "lock timeout", "drift", "undo" or "hotfix reconcile".
+
+### Run drill: checksum mismatch
+- Setup: `V1__create_t.sql` and `V2__add_row.sql`; `flyway migrate`.
+- Break: add a comment to V1; `flyway validate`.
+- Observe: `CHECKSUM_MISMATCH` with the applied and resolved checksums.
+- Recover: restore the file and validate again. Then repeat the edit and, as a person, run `flyway repair`; validate passes.
+- Learned: `repair` clears the error without asking whether the edit was right.
+
+### Run drill: version collision
+- Setup and break: two branches each add `V3__<name>.sql`; merge both; `flyway info`.
+- Observe: `DUPLICATE_VERSIONED_MIGRATION` with both paths; nothing ran.
+- Recover: renumber the later file to V4; migrate. Learned: who renumbers, and why timestamps help (file 09).
+
+### Run drill: failed migration
+- Setup: V1 and V2 applied.
+- Break: first, `V3__bad.sql` creating a table twice: it rolls back cleanly with no Failed row. Then a script that runs `ALTER DATABASE drill SET RECOVERY SIMPLE;`, creates a table, then repeats that `CREATE TABLE`.
+- Observe: with `mixed = true` it runs without a transaction: `flyway info` shows Failed and the first table exists. With `mixed = false`, Flyway refuses the mixed script and nothing in V3 runs.
+- Recover: drop the leftover table by hand, fix the script, run `flyway repair` as a person, then `migrate`.
+- Learned: roll-back versus partial state, what `mixed` changes, and why non-transactional statements get their own migration.
+
+### Run drill: lock timeout
+- Setup: V1 creates a table with rows; add `callbacks/beforeEachMigrate.sql` with `SET LOCK_TIMEOUT 5000;` and add `callbacks` to `locations`.
+- Break: in a `sqlcmd` session, `BEGIN TRAN; UPDATE` a row in that table and leave it open. Add `V2` that alters the table; `flyway migrate`.
+- Observe: after about five seconds V2 fails with a lock request time-out and rolls back; without the callback it waits.
+- Recover: end the other transaction; `flyway migrate`.
+- Learned: whether the callback's setting reaches the migration on your engine, and what a lock wait looks like in the section 4 query.
+
+### Run drill: drift
+- Setup: migrate V1 and V2 with `-migrate.saveSnapshot=true`.
+- Break: with `sqlcmd`, create a table or index directly in `drill`.
+- Observe: `flyway check -drift -environment=drill "-check.failOnDrift=true"` fails with `CHECK_DRIFT_DETECTED`; open the HTML report, the JSON `onlyInTarget` list and the `drift-resolution` folder.
+- Recover: run the generated revert script on `drill`; rerun the check.
+- Learned: how to read the report.
+
+### Run drill: undo
+- Setup: `V3__add_note.sql` adds a nullable column, `U3__add_note.sql` drops it; migrate; put values in the column.
+- Break and observe: `flyway undo` undoes V3 and the values are gone; `flyway migrate` reapplies V3 without them.
+- Learned: undo restores structure, not data (file 14).
+
+### Run drill: hotfix reconcile
+- Setup: as the drift drill, with a stored snapshot.
+- Break: create an index in `drill` by hand, as a hotfix.
+- Observe: drift is flagged; `drift-resolution` holds an incorporate script.
+- Recover: copy it in as `V3`; `flyway info` shows it as the only pending migration; then `flyway migrate -environment=drill -cherryPick=3 -skipExecutingMigrations=true`; take a fresh snapshot; rerun the check, which passes.
+- Learned: the whole loop from out-of-band change to source control (file 14).
+
+## 7. In daily use
+
+- Developers: read a red build with section 1 and name the card in the pull request.
+- DBAs: use the section 4 query in release windows.
+- Release owners: section 3 is the runbook.
+
+## 8. Limits
+
+- Error message wording changes between versions; match on error codes.
+- No command reverses a partially applied non-transactional migration. Clean-up is manual and decided by a person.
+- Only exit codes 1 and 35 are documented; use JSON error codes or action outputs for anything finer.
+
+## 9. Instructions for the AI assistant using this file
+
+- Ask for the exact error text, the command or workflow step, the environment and the `flyway info` output, one at a time, before suggesting a fix.
+- Work through section 2, name the card, and give its Do and Don't lines together.
+- Never suggest `repair`, `undo`, `outOfOrder`, `skipExecutingMigrations`, `clean`, `skip-drift-check` or hand-run SQL in production as a quick fix; each needs a person's decision. Never write `repair` into a pipeline or script.
+- Run or script drills only against a local container or a throwaway sandbox database. If asked to drill on CI, `build`, `test`, `uat` or production, refuse and offer the local version.
+- If nothing matches, say so. For install, sign-in or connectivity problems, switch to file 23.
+- Remind the person to remove credentials and server names before pasting logs. Answer in the language they write in; keep commands and error text in English.
