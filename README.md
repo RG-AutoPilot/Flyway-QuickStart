@@ -23,16 +23,17 @@ Left empty on purpose: the schema model, migrations and database connections. Yo
 
 The assistant then:
 
-1. checks you're set up (Git, Flyway CLI, licence, MCP)
-2. runs a pre-configuration checklist (sandbox dev, Test, Prod databases, plus throwaway Check, Build and shadow databases)
-3. asks for your environments and updates `flyway.toml`
-4. asks a few pre-scripting questions (object existence checks, objects to ignore)
-5. creates the schema model from your development database
-6. creates a baseline (Backup as Baseline where possible, a baseline script otherwise)
-7. proves it works by generating a migration
-8. points you at Flyway Desktop to set passwords and try it yourself
-9. updates the pipelines to match your environments
-10. stays around for tweaks
+1. greets you and answers any questions
+2. checks your setup (Flyway, the MCP server, Git)
+3. helps you get a source database with real tables in it, and agree names for Dev, Test, Prod and Flyway's scratch databases
+4. updates `flyway.toml` with your environments
+5. asks a few quick preferences (existence checks, objects to ignore)
+6. creates the schema model from your development database
+7. sets the baseline with Backup as Baseline (you run the SQL; the assistant explains it)
+8. proves it works by generating a migration
+9. points you at Flyway Desktop to try it yourself
+10. updates the pipelines to match your environments
+11. stays around for tweaks
 
 Progress and decisions are kept in `Documentation/project-profile.md`, so you can stop and pick up later.
 

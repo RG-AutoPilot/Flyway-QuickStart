@@ -6,18 +6,17 @@ The setup skill (`.claude/skills/flyway-setup/SKILL.md`) fills this in as you go
 
 | Step | Status | Notes |
 |---|---|---|
-| 1 Welcome and expectations | not started | |
-| 2 Right place (Git, Flyway CLI, MCP) | not started | |
-| 3 Licence | not started | |
-| 4 Pre-configuration checklist | not started | |
-| 5 Environments | not started | |
-| 6 Pre-scripting questions | not started | |
-| 7 Schema model | not started | |
-| 8 Baseline | not started | |
-| 9 Generate and test a migration | not started | |
-| 10 Last checks, Desktop test | not started | |
-| 11 Pipelines | not started | |
-| 12 Personalise and wrap up | not started | |
+| Welcome and questions | not started | |
+| Quick checks (Flyway, MCP, Git) | not started | |
+| Groundwork (server, source database, names) | not started | |
+| Connecting Flyway (environments) | not started | |
+| Quick preferences | not started | |
+| Schema model | not started | |
+| Baseline (Backup as Baseline) | not started | |
+| Generate and test a migration | not started | |
+| Trying it in Flyway Desktop | not started | |
+| Pipelines | not started | |
+| Wrap-up and personalise | not started | |
 
 ## Setup choices
 
@@ -29,7 +28,9 @@ The setup skill (`.claude/skills/flyway-setup/SKILL.md`) fills this in as you go
 | Environments (names, in promotion order) | development, Test, Prod |
 | Extra stage (QA)? | no |
 | Authentication (Windows / SQL) | |
+| Source database (own copy / sample) | |
 | Baseline method (Backup as Baseline / baseline script) | |
+| Backup file location | |
 | Baseline version | |
 | Object existence checks | |
 | Filtered objects or schemas | |

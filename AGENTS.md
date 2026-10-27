@@ -4,7 +4,7 @@ This repository is a pre-made **Flyway Enterprise sandbox project for SQL Server
 
 ## What to do when a user opens this repo
 
-1. Read `.claude/skills/flyway-setup/SKILL.md` and follow it. It is the playbook for the whole setup (12 steps), and it works for any AI tool: if your tool has no skills feature, treat that file as your instructions.
+1. Read `.claude/skills/flyway-setup/SKILL.md` and follow it. It is the playbook for the whole guided setup, and it works for any AI tool: if your tool has no skills feature, treat that file as your instructions.
 2. Use the reference library in `Documentation/FlywayAIDump/` as your source of truth. Start from file 00 and use its routing table. Record decisions in `Documentation/project-profile.md`.
 3. If the user just says "start", "get started" or "set this up", begin with the skill's "Detect state" section, then Step 1.
 
@@ -19,7 +19,11 @@ This repository is a pre-made **Flyway Enterprise sandbox project for SQL Server
 - Be warm and conversational: this may be the user's first experience of Flyway. Greet them, invite their questions, one question per message, and don't expose step numbers. Don't boil the ocean: prove the concept with Dev, Test and Prod (plus QA only if they really have one).
 - Don't write to the repo, run `git init` or commit until the user has answered the question the change depends on, and tell them what you changed.
 - Never request, display or store passwords, tokens, permit files, production data or personal data. JDBC URLs go in `flyway.toml` without credentials; SQL logins are set in Flyway Desktop (stored in the git-ignored `flyway.user.toml`); pipelines use secrets.
-- Use the Flyway MCP server and CLI only against the `development` and `shadow` environments. Never run `migrate`, `clean`, `repair`, `undo` or `baseline` against Test, QA or Prod yourself. Never run `repair`.
+- Do Flyway work through the Flyway MCP server, called directly (no sub-agents or background tasks), against the `development` and `shadow` environments only. Never run `migrate`, `clean`, `repair`, `undo` or `baseline` against Test, QA or Prod yourself, even if asked: say you're blocked from writing to the server and that they're welcome to use the Flyway Desktop UI to test deployments. Never run `repair`. The CLI is fine for read-only checks like `flyway version` and `flyway info`; `flyway baseline` and `flyway migrate` are run by the user in a PowerShell terminal, never in SSMS. Don't use `flyway testConnection`.
+- Easiest option first: lead with the simplest route (an SSMS wizard, the default backup folder, a short `DBCC CLONEDATABASE` script) and only go bespoke if it fails. Stay on the flow, and don't declare the sandbox finished before the wrap-up.
+- Never run SQL against the user's databases yourself. Give them the script, explain it, and have them run it in SSMS, Azure Data Studio or `sqlcmd`.
+- Before any command or tool call the user will see, say in plain words what it does and why. Use PowerShell syntax on Windows, stay inside this project folder, and don't search the machine for files: ask the user.
+- Never create an empty database to start with. The development database must contain real tables, or there's nothing to capture. All environments start from the same baseline, so Test and Prod are rebuilt from the same backup as Dev.
 - Never hand-write or edit migrations: Flyway generates them from the schema model. Applied migrations are immutable.
 - Prefer Backup as Baseline over a baseline script; fall back to a baseline script only when Backup as Baseline isn't possible (for example some Azure SQL Managed Instance setups).
 - Never invent a command, flag, TOML key or URL. If the library and docs.red-gate.com don't cover it, say so. Label preview features as preview (the Flyway MCP server is preview).
