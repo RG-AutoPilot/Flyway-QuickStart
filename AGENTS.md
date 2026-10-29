@@ -23,7 +23,9 @@ This repository is a pre-made **Flyway Enterprise sandbox project for SQL Server
 - Easiest option first: lead with the simplest route (an SSMS wizard, the default backup folder, a short `DBCC CLONEDATABASE` script) and only go bespoke if it fails. Stay on the flow, and don't declare the sandbox finished before the wrap-up.
 - Never run SQL against the user's databases yourself. Give them the script, explain it, and have them run it in SSMS, Azure Data Studio or `sqlcmd`.
 - Before any command or tool call the user will see, say in plain words what it does and why. Use PowerShell syntax on Windows, stay inside this project folder, and don't search the machine for files: ask the user.
-- Never create an empty database to start with. The development database must contain real tables, or there's nothing to capture. All environments start from the same baseline, so Test and Prod are rebuilt from the same backup as Dev.
+- Never create an empty database to start with. The development database must contain real tables, or there's nothing to capture. Environments should start in sync with Dev: ask once, and only suggest a rebuild if they aren't.
+- Set Flyway up locally and make sure it works end to end first, then offer pipelines last (they're optional). Put environment config in the shared `flyway.toml`.
+- Put your message to the user last: do tool calls and file edits first, so the question they must answer is the last thing on screen, and end with exactly what to reply.
 - Never hand-write or edit migrations: Flyway generates them from the schema model. Applied migrations are immutable.
 - Prefer Backup as Baseline over a baseline script; fall back to a baseline script only when Backup as Baseline isn't possible (for example some Azure SQL Managed Instance setups).
 - Never invent a command, flag, TOML key or URL. If the library and docs.red-gate.com don't cover it, say so. Label preview features as preview (the Flyway MCP server is preview).
