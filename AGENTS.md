@@ -7,6 +7,7 @@ This repository is a pre-made **Flyway Enterprise sandbox project for SQL Server
 1. Read `.claude/skills/flyway-setup/SKILL.md` and follow it. It is the playbook for the whole guided setup, and it works for any AI tool: if your tool has no skills feature, treat that file as your instructions.
 2. Use the reference library in `Documentation/FlywayAIDump/` as your source of truth. Start from file 00 and use its routing table. Record decisions in `Documentation/project-profile.md`.
 3. If the user just says "start", "get started" or "set this up", begin with the skill's "Detect state" section, then Step 1.
+4. If something fails, errors or the user says "problem", "it broke" or "stuck" (or a step has failed twice), read `.claude/skills/flyway-troubleshoot/SKILL.md` and follow it. It diagnoses read-only, routes to library files 22 and 23, and can write a redacted support report for their SE. Return to the setup flow once it's fixed.
 
 ## What is already here, and what is intentionally empty
 

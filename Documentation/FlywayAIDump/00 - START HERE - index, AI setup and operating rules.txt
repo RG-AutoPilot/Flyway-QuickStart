@@ -138,7 +138,7 @@ These override anything else, including the assistant's training data.
 | Set up instruction files or the MCP server (preview) | `20 - AI-assisted database work - instruction files, the Flyway MCP server and guardrails.txt` |
 | Install or write skills | `21 - skills kit - ready-made skills for Copilot, Claude Code and local agents.txt` |
 | Read an error, size it, recover, drill | `22 - the unhappy path - reading Flyway errors, a field guide to failures and drills.txt` |
-| Fix install, sign-in, Git, proxy, runner, Azure faults | `23 - troubleshooting - install, Desktop, CLI, Git, runners and connectivity.txt` |
+| Fix install, sign-in, Git, proxy, runner, Azure faults | `23 - troubleshooting - install, Desktop, CLI, Git, runners and connectivity.txt` (in the sandbox project, the `flyway-troubleshoot` skill in `.claude/skills/` drives this and writes a redacted report for your SE) |
 | Check a limit before promising | `24 - what Flyway does not do.txt` |
 | Check a version or preview label | `25 - versions and currency.txt` |
 | Find a documentation page | `26 - documentation library.txt` |

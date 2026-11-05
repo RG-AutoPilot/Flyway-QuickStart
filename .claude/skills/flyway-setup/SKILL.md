@@ -87,7 +87,15 @@ Check, and report only in plain language what matters:
 - `flyway version` runs. **If it errors about a parameter in `flyway.toml` (for example `flyway.check.rulesConfig`), their Flyway is too old for this project. Don't edit `flyway.toml` and don't try to work around it.** Tell them kindly to update Flyway (this project is built for the current 13.10 line) using `Scripts/Flyway_DownloadAndInstallCLI.ps1` or the Redgate installer (library file 04), then re-check. If it shows they're signed out, help them sign in (`flyway auth`, file 04).
 - The Flyway MCP server responds. Load the project through it (once, directly). If it doesn't respond, help them approve the project's MCP server in their AI tool, restart, retry (file 20 section 7).
 - Whether this folder is a Git repo. If not, mention it lightly: "This folder isn't a Git repository yet. It isn't needed for the setup, but you'll want it for the pipelines and for undoing changes. Shall I set it up now, or would you prefer to deal with it later?" Only run `git init` if they say yes.
+- **Read-only environment checks.** These only read, change nothing and print no secrets. Say nothing when they pass, and mention only what fails, in plain words, with the fix:
+  - **More than one Flyway on the PATH** (`where.exe flyway` prints more than one line). Flyway Desktop installs its own CLI, which can differ from the one you installed. Tell them which is first and that mixing versions causes confusing errors (file 23, section 4).
+  - **Project folder inside OneDrive** (the working directory path contains `OneDrive`). Flyway Desktop can have file-locking and save problems in synced folders (file 23, section 3). Say it once, kindly: it's fine to carry on, but if Desktop misbehaves later, moving the project out of OneDrive is the first thing to try. Don't insist.
+  - **Git too old for Desktop** (only if the folder is a Git repo or they'll use Desktop): `git --version` below 2.30.0, or Git not found (file 23, section 3).
+  - **`flyway.user.toml` not git-ignored.** Only if the file exists and the folder is a Git repo: `git check-ignore flyway.user.toml` should print the file name. If it doesn't, fix `.gitignore` after telling them.
+  Don't check network reachability or the SQL Server connection here; the MCP server and `flyway info` prove those later, when there is something to connect to.
 Don't mention editions, versions or licensing when everything is fine. Say "Flyway's installed and I can talk to it" and move on.
+
+**If something here or later fails twice**, stop trying variations and hand over to the `flyway-troubleshoot` skill, which collects the facts and can write a redacted report for their SE.
 
 ### Step 3 - Groundwork
 Say: "Let's make sure you've got what we need. If anything's missing, I'll help you set it up." Then go through these one at a time, conversationally.
@@ -221,7 +229,7 @@ Library files 11, 12 and 13.
 
 ## Commands the user can type at any point
 
-`where am I` (what's done and what's next, in plain words), `next`, `back`, `skip` (with a reason), `problem` (fix mode, library file 22), `more` (fuller detail from the source file), `what do you know` (what you've read, inferred and defaulted), `end`.
+`where am I` (what's done and what's next, in plain words), `next`, `back`, `skip` (with a reason), `problem` (hand over to the `flyway-troubleshoot` skill, which uses library files 22 and 23), `more` (fuller detail from the source file), `what do you know` (what you've read, inferred and defaulted), `end`.
 
 ## Where to look
 
@@ -238,7 +246,7 @@ Library files 11, 12 and 13.
 | Drift, undo, recovery | 14 |
 | Dev/test databases | 16 |
 | MCP server, AI guardrails | 20 |
-| Errors | 22, 23 |
+| Errors, failures, "it broke", a report for their SE | `flyway-troubleshoot` skill (uses 22, 23) |
 | What Flyway doesn't do | 24 |
 | Versions, preview status | 25 |
 | Doc links | 26 |
