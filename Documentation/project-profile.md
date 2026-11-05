@@ -30,7 +30,7 @@ The setup skill (`.claude/skills/flyway-setup/SKILL.md`) fills this in as you go
 | Authentication (Windows / SQL) | |
 | Source database (own copy / sample) | |
 | Baseline method (Backup as Baseline / baseline script) | |
-| Backup file location | |
+| Baseline backup (taken from the Prod database) and file location | |
 | Baseline version | |
 | Object existence checks | |
 | Filtered objects or schemas | |
