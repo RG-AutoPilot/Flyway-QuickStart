@@ -1,10 +1,10 @@
-Flyway Enterprise AI library - file 07 of 31
+Flyway Enterprise AI library - file 07 of 32
 MOVING OFF A SCRIPT RUNNER - BASELINING EXISTING SQL SERVER DATABASES AND RUNNING SIDE BY SIDE
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
 What this covers: Moving databases that an in-house script runner manages onto Flyway without a big-bang cut-over: inventory, choosing a baseline point, capturing the schema, aligning environments, baselining each environment's history, reference data, side-by-side rules, cut-over and retirement, converting legacy packages, cross-database references and several databases. It's written for SQL Server on-premises and Azure SQL.
 
-Not in this file: SQL projects compared with Flyway (file 06), the proof of concept plan (file 05), daily authoring (file 08), version numbering across teams (file 09), release ordering across databases (file 11), drift and undo (file 14), and building development and test databases (file 16).
+Not in this file: SQL projects compared with Flyway (file 06), moving off SQL Change Automation or SQL Source Control (file 31), the proof of concept plan (file 05), daily authoring (file 08), version numbering across teams (file 09), release ordering across databases (file 11), drift and undo (file 14), and building development and test databases (file 16).
 
 Contents:
 1. What the runner knows: take inventory first
@@ -75,7 +75,7 @@ A baseline script built from a schema can struggle with invalid objects, filegro
 2. In Flyway Desktop, create the project, connect that database as `development` and save it to the schema model (file 08).
 3. If you want new environments built from scripts, generate a baseline migration. Redgate's tutorial requires a project with no migrations yet.
    - Flyway Desktop (needs a shadow environment, file 16): on the Generate Migrations tab choose the baseline database and click Generate baseline script. Desktop filters users and roles automatically, lists invalid objects so you can deselect false positives, and offers Verify Script against the shadow database.
-   - Command line: Redgate's baseline tutorial diffs the baseline database against `migrations` built on the shadow, then runs `generate` with the baseline type. Redgate's command-line setup guide also diffs against `empty`, which needs no shadow. `baseline` can't be combined with `versioned` or `undo` in one call.
+   - Command line: Redgate's baseline tutorial diffs the baseline database against `migrations` built on the shadow, then runs `generate` with the baseline type. Redgate's command-line setup guide also diffs against `empty`, which needs no shadow. `baseline` can't be combined with `versioned` or `undo` in one call. `generate` also accepts `-baselineFilename`; check Redgate's generate command page for its format before you use it.
 
 > Not from Redgate docs — starting point, validate in your environment.
 
@@ -91,7 +91,7 @@ flyway generate -generate.types=baseline -generate.description=Baseline
 
 If you don't need script-built environments, skip the `B` script and baseline existing databases with the command. Redgate also documents baselining from a SQL Server backup: https://documentation.red-gate.com/flyway/learn-more-about-flyway/how-to-articles/use-a-sql-server-backup-to-baseline-a-database
 
-Backup as Baseline (Enterprise, SQL Server), as Redgate's page describes it. It is the preferred route in the sandbox repo, because it avoids the problems of a generated baseline script (invalid objects, linked servers, filegroups, size). It works through the shadow environment's backup provisioner, not through a `B` script:
+Backup as Baseline (Enterprise, SQL Server), as Redgate's page describes it. It remains the preferred route in this library and the sandbox repo, because it avoids the problems of a generated baseline script (invalid objects, linked servers, filegroups, size). It works through the shadow environment's `backup` provisioner (preview), not through a `B` script. The backup provisioner is labelled preview on its reference page (file 25), so say "(preview)" whenever you describe it:
 
 1. Make a schema-only copy with `DBCC CLONEDATABASE(<db>, <db>_Copy) WITH VERIFY_CLONEDB;`, back it up with `BACKUP DATABASE [<db>_Copy] TO DISK = N'<file>.bak' WITH FORMAT;`, then drop the copy. The page also covers optional steps: keeping `flyway_schema_history`, copying static data, and shrinking the files.
 2. Make the file readable by the SQL Server instance that restores it. The shadow login needs permission to restore.
@@ -111,7 +111,20 @@ provisioner = "backup"
 
 The keys come from Redgate's page. `backupVersion` is required when the backup has no `flyway_schema_history` table; `001` suits a new project. `generateWithMove` makes the provisioner choose data and log paths on the target instance, which avoids restore failures from paths baked into the backup. `flyway info -environment=shadow` then restores it and shows a baseline row (type BASELINE, "Baseline from backup"); the restore doesn't repeat until the shadow is cleaned. In Desktop: Generate migrations, Set up shadow database, Backup.
 
-Limits: it needs an Enterprise licence. `DBCC CLONEDATABASE` doesn't fully handle system-versioned temporal tables, ledger tables and some system-level objects, which you script in an `afterBaseline` callback. It restores a native `.bak`, so it doesn't suit Azure SQL Database and may not suit some Azure SQL Managed Instance setups: use a baseline script there. The page doesn't state version floors or preview status, so check file 25 and the page before relying on either.
+If you'd rather name the restore paths yourself, the backup provisioner (preview) also takes an explicit file mapping, listed in Redgate's reference as the alternative to `sqlserver.generateWithMove`: one `[[environments.<env>.resolvers.backup.sqlserver.files]]` entry per database file, each with `logicalName` and `filePath`. Check Redgate's backup provisioner page for how the two settings combine before you use it.
+
+> Not from Redgate docs — starting point, validate in your environment.
+```toml
+  [[environments.shadow.resolvers.backup.sqlserver.files]]
+  logicalName = "<data-file-logical-name>"
+  filePath = "<server-data-folder>/<shadow-db>.mdf"
+
+  [[environments.shadow.resolvers.backup.sqlserver.files]]
+  logicalName = "<log-file-logical-name>"
+  filePath = "<server-log-folder>/<shadow-db>_log.ldf"
+```
+
+Limits: it needs an Enterprise licence. `DBCC CLONEDATABASE` doesn't fully handle system-versioned temporal tables, ledger tables and some system-level objects, which you script in an `afterBaseline` callback. It restores a native `.bak`, so it doesn't suit Azure SQL Database and may not suit some Azure SQL Managed Instance setups: use a baseline script there. The how-to page doesn't state version floors or preview status, but the backup provisioner it relies on is (preview) on its reference page. Check file 25 for both before relying on either.
 
 ## 5. Align the environments before you baseline
 

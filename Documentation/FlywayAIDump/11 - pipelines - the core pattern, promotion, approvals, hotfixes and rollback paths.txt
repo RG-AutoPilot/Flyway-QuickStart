@@ -1,10 +1,10 @@
-Flyway Enterprise AI library - file 11 of 31
+Flyway Enterprise AI library - file 11 of 32
 Pipelines - the core pattern, promotion, approvals, hotfixes and rollback paths
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
-What this covers: The shapes a Flyway pipeline can take and the steps inside each, independent of the CI tool: pull request validation variants, building once, the generate-in-pipeline hybrid, state-based prepare and deploy, per-environment stages, the dry-run preview and approval, several databases, hotfixes, undo versus roll-forward, one pipeline contract every team plugs into, and where AI tools fit. File 12 turns this into GitHub Actions.
+What this covers: The shapes a Flyway pipeline can take and the steps inside each, independent of the CI tool: pull request validation variants, building once, the generate-in-pipeline hybrid, state-based prepare and deploy, per-environment stages, the dry-run preview and approval, several databases, hotfixes, undo versus roll-forward, one pipeline contract every team plugs into, and where AI tools fit. File 12 turns this into GitHub Actions and Azure DevOps.
 
-Not in this file: GitHub Actions syntax, runners, reusable workflows and Azure authentication (file 12), the contents of each environment's configuration and secrets (file 10), how developers make changes (file 08, developer workflows), designing a workflow per team (file 28, workflow architect), situation cards such as monolith or microservices (file 29, scenario playbooks), version numbers and the collision check (file 09), code review rules and database tests (file 13), drift, snapshots and recovery (file 14), DBA runbooks (file 15), ticket keys and change requests (file 30), audit evidence (file 17), reading a failed run (file 22), and baselining and the cut-over from the script runner (file 07).
+Not in this file: GitHub Actions and Azure DevOps syntax, runners, agents, reusable workflows and Azure authentication (file 12), the contents of each environment's configuration and secrets (file 10), how developers make changes (file 08, developer workflows), designing a workflow per team (file 28, workflow architect), situation cards such as monolith or microservices (file 29, scenario playbooks), version numbers and the collision check (file 09), code review rules and database tests (file 13), drift, snapshots and recovery (file 14), DBA runbooks (file 15), ticket keys and change requests (file 30), audit evidence (file 17), reading a failed run (file 22), and baselining and the cut-over from the script runner (file 07).
 
 Contents:
 1. The reference release flow
@@ -66,13 +66,13 @@ A team can move from C to A, or from A to B, without changing the stages after m
 
 For: developers, reviewers and whoever owns the pipeline.
 
-Run cheap failures first. Each row is its own pipeline step.
+Run cheap failures first. Each row is its own pipeline step, in this order.
 
 | Step | Command or check | What it proves |
 |---|---|---|
 | Version collision | A script that compares new migration versions with `main` (file 09) | No two branches claim the same version |
+| Code review | `flyway check -code "-check.code.failOnError=true"` | No rule violation; failures are attributable to the step (file 13). It needs no database, so it runs before the build |
 | Build from scratch | `flyway migrate` against a build database that is reset first | The migrations run in order on an empty database |
-| Code review | `flyway check -code` | No rule violation; failures are attributable to the step (file 13) |
 | Change report | `flyway check -changes` with `-check.buildEnvironment=build` | The objects the pull request changes; needs a build database |
 | Undo round trip | `flyway undo -target=<lowest new version>`, then `flyway migrate` again | The undo scripts in the pull request run and the change can be re-applied |
 | Preview | `flyway check -dryrun` against `test`, read-only | The SQL `test` would receive |
@@ -98,7 +98,7 @@ Rules:
 
 Flyway doesn't produce a build artifact of its own. Pick one of two ways to make sure the commit that passed review is the one every environment receives:
 
-- **Package on merge (default).** An archive of the project at the merged commit: `migrations/`, `callbacks/` if used, `flyway.toml`, the filter file and the `ci/` folder, plus a manifest with the commit SHA, the run ID and a checksum. Every later stage downloads that archive and checks the checksum.
+- **Package on merge (default).** An archive of the project at the merged commit: `migrations/`, `callbacks/` if used, `flyway.toml`, the filter file and the `ci/` folder if used, plus a manifest with the commit SHA, the run ID and a checksum. Every later stage downloads that archive and checks the checksum.
 - **Pin the commit SHA.** Pass the validated SHA between jobs and check out exactly that SHA, never a branch name. Use it where artifact storage is restricted (file 12 covers the GitHub Enterprise Server case).
 
 Never in either: `flyway.user.toml`, passwords, tokens, permits, reports or snapshots.
@@ -151,7 +151,17 @@ If a database uses the state-based approach (file 06), the release path changes 
 | Pull request | `prepare` against an empty provisioned database and `deploy` there, to prove the model builds |
 | Production checks (read-only) | `flyway check -drift` failing on drift; the change report; `flyway prepare -prepare.source=schemaModel` for production; code review on the script; publish all of it |
 | Approval | A named approver reads the script and reports |
-| Production deploy | `flyway deploy` of the published script, unchanged, with `-deploy.saveSnapshot=true` |
+| Production deploy | `check -drift` again as its own step (production may have drifted while the approval waited; if so, fail and prepare again), then `flyway deploy` of the published script, unchanged, with `-deploy.saveSnapshot=true` |
+
+Facts that shape this flow:
+
+- `prepare` takes its comparison options, filters and static data configuration from TOML only; the command line can't override them.
+- `prepare -prepare.source=schemaModel` drops target schemas that aren't in the schema model. Set `schemaModelSchemas` when the target holds schemas the model doesn't. From engine 12.5 it fails with a clear error if the schema model folder doesn't exist; check the working directory and project path if you see it.
+- `prepare -prepare.source=migrations` doesn't run callbacks and doesn't handle Java or other non-SQL migrations.
+- `"-prepare.types=deploy,undo"` with `-prepare.undoFilename=<file>` writes a rollback script beside the deployment script. Publish it with the release artifacts (section 13).
+- `deploy` succeeds with a warning when the script file doesn't exist, so a no-change release doesn't fail. Check the step output, not only the exit code, if an empty release should be noticed.
+- A state-based change report is described as `flyway check -changes "-check.changesSource=schemaModel"` (unverified; prove it in your proof of concept).
+- Redgate also documents a fully automated `flyway prepare deploy` in one command. Use that at most for development or test targets with no approval, never for an approved environment.
 
 The file approved is the file deployed. Never deploy a script prepared after the approval, and never hand-edit one: fix the model or the target and prepare again. Just before deploying, re-prepare against production into a different file name (compare only), and fail if it differs from the approved script. Redgate's docs don't say whether a prepared script carries run-specific text, so in your proof of concept prepare twice against an unchanged target and confirm the files match byte for byte; if they don't, compare the `differences`, `onlyInSource` and `onlyInTarget` lists from `flyway check -changes` JSON reports instead. Placeholders don't work in state-based deployment scripts. With no history table, serialize deployments per target in the CI tool.
 
@@ -177,7 +187,7 @@ For: release managers and DBAs.
 
 The production read-only job runs before the approval and publishes what the approver needs:
 
-- the deployment preview: `flyway check -dryrun` puts the SQL Flyway would run in the report, which Redgate describes as equivalent to a `migrate` dry run. For a plain SQL file, use `flyway migrate -dryRunOutput=<file>` on its own; the setting page warns that in a chained command only the first verb is recorded,
+- the deployment preview: `flyway check -dryrun` generates a dry run script and puts the SQL Flyway would run in the report, which Redgate describes as equivalent to a `migrate` dry run. `dryRunOutput` is a root-level setting, and its page says that in any multi-command run only the first command is recorded. For a plain SQL file, run `flyway migrate -dryRunOutput=<file>` as its own step. No snapshot is saved during a dry run,
 - the change report, the drift result, and the list of ticket keys in the release (file 30).
 
 Why "the script reviewed is the script approved" holds for migrations-based releases: the release is fixed, so the pending set is the release minus what production has. A hand change to production (caught by the drift gate) or another deployment in between (shown by `info`) can change it. If an approval sits long enough for either, cancel and re-run the checks. Record the allowed age in your decision log (file 01).
@@ -188,7 +198,7 @@ Approvals belong to the CI tool's environment settings, outside the pipeline fil
 
 ## 9. Before and after each deployment
 
-Every command loads only that environment's file (file 10). The first block runs in the read-only job; the second after approval.
+The first block runs in the read-only job; the second after approval. These examples load a per-environment `ci/<env>.toml` with `-configFiles`, which adds to the auto-loaded `flyway.toml` rather than replacing it. That pattern is optional: Flyway resolves `${env.X}` only for the environment selected with `-environment` (tested), so one shared `flyway.toml` holding every environment works too. In that case drop `$CFG` and map only the selected environment's variables into the step (file 10).
 
 > Not from Redgate docs — starting point, validate in your environment.
 
@@ -232,7 +242,7 @@ The release flow doesn't change per target. Only four things do:
 | Runner | Self-hosted, inside the network that reaches the instance | Self-hosted in a network that reaches the server (usual for Managed Instance), or a hosted runner if the firewall admits it (file 12) |
 | Authentication | SQL authentication, or Windows integrated authentication or Kerberos under the runner's service account | A Microsoft Entra identity (service principal, managed identity, or an access token after OIDC sign-in), or a SQL login |
 | Connection | TCP port in the JDBC URL; certificate trust per your policy | Host per service (file 10), firewall rule or private endpoint, encrypted |
-| Environment file | One `ci/<environment>.toml` each, same project and same migrations | Same |
+| Environment definition | One `[environments.<name>]` block each in the shared `flyway.toml`, or an optional `ci/<environment>.toml` each; same project and same migrations | Same |
 
 Put each target in its own job with its own runner and identity, and chain the jobs with dependencies. Feature differences between SQL Server and Azure SQL are Microsoft's to define, so keep a lower environment of each target type in the path and let a difference fail in `test`, not in production.
 
@@ -282,6 +292,7 @@ Decide before you need it.
 - **Lower environments (`test`, UAT, development):** undo is for retrying a change (commands and limits in file 14, section 7). Trust only undo scripts the pull request round trip has exercised. Add `-undo.saveSnapshot=true` so drift checks stay accurate.
 - **Production, default: roll forward.** A new migration that corrects the change, through the normal pipeline. It works for everything and keeps history linear.
 - **Production, exception: undo.** A one-off job behind the production approval, only for an undo script rehearsed against a production-like state. An undo of an added column removes the data written to it since, so it's a schema operation, not a data recovery.
+- **State-based releases:** prepare the rollback script with the deployment script (`"-prepare.types=deploy,undo"`, section 6) and keep it with the release artifacts. Running it is the same exception as an undo: reviewed, rehearsed and behind the approval. Without one, a rollback script can be prepared from the previous snapshot in the snapshot history table (`diff`, `prepare`, `deploy`; file 14, section 8). Snapshots hold schema only, so review that script for data effects.
 - **Snapshot-based recovery or restore:** generate a corrective script from the pre-release snapshot, or restore as the last resort, a data-loss decision (file 14, sections 8 and 11).
 
 A failed SQL Server migration normally rolls itself back, while migrations applied earlier in the same run stay applied. `flyway info` shows where it stopped. Statements that can't run in a transaction, such as `ALTER DATABASE`, are the exception (file 14; file 22). Never automate `repair`; a person runs it after reading the error. Rolling back application code doesn't roll back the database, so keep migrations backward compatible with the previous application version.
@@ -329,12 +340,14 @@ Until a database's cut-over (file 07), exactly one deployer owns it: your existi
 - The first deployment after baselining has no snapshot to compare.
 - There's no multi-database transaction. Ordering and backward compatibility are your design (section 11).
 - Generated migrations can't capture data motion or intent; those steps are written by hand.
-- Flyway documents two exit codes (`1` and `35`, licensing). Read the detail from the error code in `-outputType=json` output, the report or the log (file 22).
+- Treat any non-zero exit code as failure. Redgate documents `1` (failure) and `35` (licensing), and from engine 12.9.0 an exit code can be derived from the error code, with no published mapping. Branch only on 35, never on `== 1`. Read the detail from the error code in `-outputType=json` output, the report or the log (file 22).
 
 ## 19. Instructions for the AI assistant using this file
 
 - Before designing a run, work out from the repository and file 01 which shape each project uses (section 2), its environments, approvers and windows, and which targets are on-premises, Azure SQL Database or Managed Instance. Don't assume a pipeline exists because a `flyway.toml` does (file 10).
-- One gate per step; never chain `check` or `validate` with `migrate`. Always include `-migrate.saveSnapshot=true` and `-installedBy=<run ID>` on deployed runs.
+- One gate per step; never chain `check` or `validate` with `migrate`. Put `check -code` before the build in the pull request job. Always include `-migrate.saveSnapshot=true` and `-installedBy=<run ID>` on deployed runs.
+- Treat any non-zero exit code as failure and branch only on 35 (licensing).
+- Don't require a `ci/<env>.toml` per environment: one shared `flyway.toml` works, because only the selected environment's `${env.X}` values are resolved.
 - Deploy the release built once from the reviewed commit. Never suggest rebuilding per environment, checking out a branch for production, or `latest`.
 - Production is on demand, one tested run at a time, behind an approval. Never suggest deploying to production automatically on merge.
 - For the hybrid, release only the recorded commit and never suggest editing a generated migration; regenerate.
@@ -343,4 +356,4 @@ Until a database's cut-over (file 07), exactly one deployer owns it: your existi
 - For a state-based release, never deploy a script prepared after the approval.
 - Keep AI tools, including yourself, out of the deploy path. Offer to explain reports; never offer to deploy.
 - When a team's needs differ, vary what's upstream of the pull request and keep the section 14 contract fixed.
-- Mark any pipeline you write as composed and point to file 12 for GitHub Actions syntax.
+- Mark any pipeline you write as composed and point to file 12 for GitHub Actions and Azure DevOps syntax.

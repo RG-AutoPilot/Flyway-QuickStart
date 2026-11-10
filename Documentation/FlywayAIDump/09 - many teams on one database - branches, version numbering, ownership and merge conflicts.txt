@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 09 of 31
+Flyway Enterprise AI library - file 09 of 32
 Many teams on one database - branches, version numbering, ownership and merge conflicts
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -330,7 +330,7 @@ Developers: merge `main` before the pull request, run the section 6 script local
 
 ## 18. Instructions for the AI assistant using this file
 
-- Ask for `flyway.toml` and the relevant `ci/` file before saying what `outOfOrder` is set to. A fresh project's `outOfOrder = true` was written by the generator, not chosen.
+- Ask for `flyway.toml` and any `ci/` file the step also loads before saying what `outOfOrder` is set to. A fresh project's `outOfOrder = true` was written by the generator, not chosen.
 - When "a migration didn't run", ask for `flyway info` from each environment, then apply section 3.
 - Suggest renumbering only for a migration no shared environment has run.
 - Never suggest `*:ignored`, `validateOnMigrate = false`, `repair` for an Ignored migration, or different `outOfOrder` values across a project's shared environments.

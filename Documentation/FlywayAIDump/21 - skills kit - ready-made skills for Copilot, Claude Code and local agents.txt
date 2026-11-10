@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 21 of 31
+Flyway Enterprise AI library - file 21 of 32
 Skills kit - ready-made skills for Copilot, Claude Code and local agents
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 

@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 27 of 31
+Flyway Enterprise AI library - file 27 of 32
 Modes - guided tracks, how-to, fix, drill, review, plan, learn, ask and daily
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -64,7 +64,7 @@ Numbers such as (08) are library files.
 3. Answer in the person's language; commands, keys, file names and error text stay in English. Accept mode names translated into the person's language.
 4. One step and at most one question per message, with numbered answers and the default marked.
 5. Never ask for passwords, tokens, connection strings or server and database names; use placeholders. If a secret is pasted, say rotate it; don't repeat it. Never accept production data.
-6. You never connect, run or deploy. File 00's rules apply, including the composed-code marker line.
+6. You never connect, run or deploy. The one exception is the sandbox setup repo, where you may use the Flyway MCP server (preview) and read-only CLI checks against the `development` and `shadow` environments only (file 00, section 1). File 00's rules apply, including the composed-code marker line.
 7. On a problem, switch to fix mode, then offer to return. Offer decision-log entries (section 21).
 
 ## 3. Commands available in any mode
@@ -97,7 +97,7 @@ Source file: <NN - short name>
 Next: reply 1 Done, 2 More, 3 Problem, 4 Skip, 5 Back to tracks
 ```
 
-Work out progress from the repository (a workflow exists, a `ci/` file exists, migrations exist) and from the decision log if the team keeps one. Mark anything you can't see as unknown, not done.
+Work out progress from the repository (a workflow exists, environments are configured, migrations exist) and from the decision log if the team keeps one. Mark anything you can't see as unknown, not done.
 
 > Not from Redgate docs — starting point, validate in your environment.
 ```text
@@ -119,9 +119,9 @@ Sandbox repo shortcut: in the Flyway Setup Sandbox repository, "start", "set up"
 
 Track S: Fast start. Goal 1: a green pull request check. Goal 2: a dry-run preview a DBA has read. Real `migrate` stays off. Don't move on until the step's check passes.
 - S1. Git works (04). Check: `where.exe git` returns one path; `git fetch` and a push to a throwaway branch work outside Flyway.
-- S2. Flyway signed in (04). Check: Desktop and `flyway --version` show Enterprise.
+- S2. Flyway signed in (04). Check: Desktop and `flyway version` show Enterprise.
 - S3. One project, one database, environments `development` and `build` only; `build` is a database you may wipe (10, 08). If the project is fresh, set these now; if configured, use what's there. Check: `flyway testConnection -environment=build` succeeds.
-- S4. A runner that reaches `build` and `test`, with `FLYWAY_EMAIL` and `FLYWAY_TOKEN` as secrets; self-hosted for on-premises SQL Server (12). Check: `flyway testConnection -configFiles=ci/test.toml -environment=test` passes in a workflow.
+- S4. A runner that reaches `build` and `test`, with `FLYWAY_EMAIL` and `FLYWAY_TOKEN` as secrets; self-hosted for on-premises SQL Server (12). Check: `flyway testConnection -environment=test` passes in a workflow (add `-configFiles=ci/test.toml` only if you keep per-environment files).
 - S5. Pull request workflow: set up Flyway, rebuild `build` from the migrations, `check -code` report-only (12, 13). Check: a pull request with one trivial migration turns the check green. Goal 1 done.
 - S6. Preview: `flyway check -dryrun` against `test` with the read-only check account, report kept as a run artifact (13, 12). Check: the report is in the artifacts and `flyway info` on `test` still shows the migration pending. If `test` isn't baselined, the preview lists every migration: do track C first.
 - S7. A DBA reads it: which SQL runs, in what order, where, and what it can't show (locking, run time at volume, data effects) (13, 11). Check: "preview read" is recorded in the decision log, or confirmed by the DBA.
@@ -131,7 +131,7 @@ Track S: Fast start. Goal 1: a green pull request check. Goal 2: a dry-run previ
 Track A: Workstation and Git setup
 - A1. `where git` returns one path; `git status`, `git fetch`, `git push` work outside Flyway; authentication is standardized (04).
 - A2. Desktop can't reach github.com:443 through the proxy: clone with the Git CLI, open the local project (04, 23).
-- A3. Install Desktop and the CLI; sign in; `flyway --version` runs (04).
+- A3. Install Desktop and the CLI; sign in; `flyway version` runs (04).
 - A4. CI uses `FLYWAY_EMAIL` and `FLYWAY_TOKEN` (or an offline permit if air-gapped); agree the four account roles (04).
 - A5. Confirm paths to on-premises SQL Server and Azure SQL (04, 23).
 
@@ -140,7 +140,7 @@ Track B: Private or local AI setup
 - B2. Confirm with security that nothing leaves your boundary (03).
 - B3. Pick the minimum set or the small-context set (00 section 5, 03).
 - B4. Paste the block from file 00 where your tool reads it; test with the menu question (00, 03, 20).
-- B5. Optional: the Flyway MCP server (preview), narrowest toolset, if approved; no production credentials for agents (20).
+- B5. Optional: the Flyway MCP server (preview), with the toolset file 20 names, if approved; no production credentials for agents (20).
 
 Track C: First project from an existing database, and baseline
 - C1. List the databases in scope; create the project with `development`, `shadow` and `build` environments (07, 10).
@@ -165,7 +165,7 @@ Track E: Multi-team rules - numbering, collision check, ownership
 - E5. Agree what happens when two schema-model changes conflict in Git; write contribution rules for every team (09, 28).
 
 Track F: Pull request validation workflow in GitHub Actions
-- F1. One small `ci/<environment>.toml` per environment; each step loads only its own (10, 12).
+- F1. Every environment in the shared `flyway.toml` with `${env.X}` credentials; each step picks its target with `-environment`, and only that environment's variables are resolved. Per-environment `ci/<environment>.toml` files, loaded with `-configFiles` on top of `flyway.toml`, are optional, for scoping secrets per job (10, 12).
 - F2. Choose the runner; write the workflow: checkout, set up Flyway, migrate the build database (12).
 - F3. Add `check -code`, report-only first; post the changes report on the pull request (13, 12).
 - F4. Add the version-collision check and the case-sensitive ticket-key check (09, 30).

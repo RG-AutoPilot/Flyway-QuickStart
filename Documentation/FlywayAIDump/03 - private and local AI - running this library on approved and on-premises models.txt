@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 03 of 31
+Flyway Enterprise AI library - file 03 of 32
 Private and local AI - running this library on approved and on-premises models
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -158,6 +158,7 @@ For tools that cap how many files you can add, start from the minimum set in fil
 | Write a migration | 08 (+ 13 for review rules) |
 | Design a team's workflow, or standardize across teams | 28 (+ 29 for the estate's shape) |
 | Move off SSDT or DACPAC deployments | 06 |
+| Move off SQL Change Automation or SQL Source Control | 31 (+ 07 for baselining) |
 | Ticket keys, change requests, approvals | 30 (+ 17 for evidence) |
 | Review a pull request | 13 and 27 |
 | Two branches, same version | 09 |

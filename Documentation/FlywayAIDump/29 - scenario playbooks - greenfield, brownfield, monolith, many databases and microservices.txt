@@ -1,10 +1,10 @@
-Flyway Enterprise AI library - file 29 of 31
+Flyway Enterprise AI library - file 29 of 32
 Scenario playbooks - greenfield, brownfield, monolith, many databases and microservices
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
 What this covers: Fourteen situation cards your AI assistant matches a team against before it recommends anything. Each card lists the signals the assistant can detect in a repository or conversation, the recommended setup, the first three steps, the pitfalls, and which files to open next. Cards combine: a brownfield monolith on Managed Instance with a regulated release uses four of them.
 
-Not in this file: The intake and the reference designs these cards point to (file 28, workflow architect), the SSDT move in depth (file 06, moving off SSDT and DACPAC deployments), baselining and the script-runner cut-over in detail (file 07), version collisions (file 09), pipeline YAML (file 12), and change requests (file 30).
+Not in this file: The intake and the reference designs these cards point to (file 28, workflow architect), the SSDT move in depth (file 06, moving off SSDT and DACPAC deployments), baselining and the script-runner cut-over in detail (file 07), moving off SQL Change Automation or SQL Source Control (file 31), version collisions (file 09), pipeline YAML (file 12), and change requests (file 30).
 
 Contents:
 1. How to use the cards
@@ -49,16 +49,16 @@ Read the repository first (file 28, section 2), then pick every card whose signa
 
 **Signals:** production exists and has no `flyway_schema_history` table; change scripts live in folders or tickets; test and UAT may not match production.
 
-**Recommended setup:** a baseline that represents production, then versioned migrations from there. Generate the baseline script in Desktop or the CLI (https://documentation.red-gate.com/flyway/database-development-using-flyway/generating-migrations/tutorial-generate-a-baseline-script). On on-premises SQL Server, a backup can stand in for the baseline script (preview backup provisioner) (https://documentation.red-gate.com/flyway/learn-more-about-flyway/how-to-articles/use-a-sql-server-backup-to-baseline-a-database).
+**Recommended setup:** a baseline that represents production, then versioned migrations from there. On on-premises SQL Server, use Backup as Baseline first, through the shadow's `backup` provisioner (preview) (file 07, section 4; https://documentation.red-gate.com/flyway/learn-more-about-flyway/how-to-articles/use-a-sql-server-backup-to-baseline-a-database). Where that isn't possible, generate a baseline script in Desktop or the CLI (https://documentation.red-gate.com/flyway/database-development-using-flyway/generating-migrations/tutorial-generate-a-baseline-script). If the history lives in a SQL Change Automation project (`__MigrationLog`, numbered migrations with header IDs) or a SQL Source Control repository, use file 31 alongside this card.
 
 **First three steps:**
 1. Capture a production-representative schema into the schema model and fix or filter invalid objects.
-2. Generate the baseline and prove it builds on a shadow, including filegroups and any cross-database references.
+2. Create the baseline (backup or script) and prove the shadow builds from it, including filegroups and any cross-database references.
 3. Mark each downstream database as already at that version with `flyway baseline`, starting with `test`, and confirm with `info`. Environments that are out of step can each be baselined at their own version, with comparison-generated migrations bringing the lagging ones forward (https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/baselining-your-downstream-environments).
 
 **Pitfalls:** confusing baseline migrations (`B` scripts, for new environments) with the `baseline` command (for existing ones). Filegroups that exist in production but not on the shadow. Baselines that reference other databases the shadow can't reach. A whole-schema dump as version 1 instead of a baseline.
 
-**Open:** 07, 10, 14, 16.
+**Open:** 07, 10, 14, 16, and 31 for SQL Change Automation or SQL Source Control.
 
 ## 4. Brownfield replacing an in-house script runner
 
@@ -113,7 +113,7 @@ Read the repository first (file 28, section 2), then pick every card whose signa
 
 **First three steps:**
 1. Draw the dependency graph: which database references which, and through what.
-2. Place shadow and build databases where those references resolve, or use a backup-provisioned shadow on-premises.
+2. Place shadow and build databases where those references resolve, or use a shadow restored by the `backup` provisioner (preview) on-premises.
 3. Fix the release order in the pipeline and test it on `test`.
 
 **Pitfalls:** shadow builds failing on a missing referenced database. Circular references. A baseline that references a database that's still changing. Azure SQL Database doesn't support cross-database names (card 11).
@@ -175,9 +175,9 @@ Read the repository first (file 28, section 2), then pick every card whose signa
 | Linked servers, SQL Server Agent | No | Yes | Yes |
 | Runner | GitHub-hosted works when the network path allows | Usually self-hosted, private network | Self-hosted inside the network |
 | Authentication | Entra: service principal, OIDC with `azure/login` and an access token, managed identity on an Azure-hosted runner, SQL logins | Same as Azure SQL Database | Windows integrated on a self-hosted runner, or SQL logins |
-| Shadow and build | A dedicated Azure SQL database with `clean`, or a container with the engine version set explicitly | A database on the instance with `clean` or `create-database` (preview) | All provisioners, including backup (preview) |
+| Shadow and build | A dedicated Azure SQL database with `clean`, or a container with the engine version set explicitly | A database on the instance with `clean` or `create-database` (preview) | `clean`, or the `backup` provisioner (preview) for Backup as Baseline, plus the other provisioners (preview) |
 
-Microsoft Learn lists what each platform rejects (https://learn.microsoft.com/en-us/azure/azure-sql/database/transact-sql-tsql-differences-sql-server, https://learn.microsoft.com/en-us/azure/azure-sql/managed-instance/transact-sql-tsql-differences-sql-server). The backup provisioner restores from a `.bak` path the server can reach, and Managed Instance restores only from URL, so don't plan on it there. Redgate's development database page suggests serverless or elastic pools to cut cost on Azure SQL Database, and notes a resumed serverless database can return error 40613 once; retry (https://documentation.red-gate.com/flyway/database-development-using-flyway/database-devops-practices/development-database-environment-configuration). Entra options are in Redgate's tutorial (https://documentation.red-gate.com/flyway/database-development-using-flyway/connecting-to-environments/tutorial-connect-using-microsoft-entra-id). The Azure Key Vault resolver relies on the Azure SDK's standard credential handling, so an `azure/login` sign-in on the runner is picked up; prove it with a test secret in the proof of concept (https://documentation.red-gate.com/flyway/reference/configuration/environments-namespace/environment-resolvers-namespace/azure-key-vault-resolver).
+Microsoft Learn lists what each platform rejects (https://learn.microsoft.com/en-us/azure/azure-sql/database/transact-sql-tsql-differences-sql-server, https://learn.microsoft.com/en-us/azure/azure-sql/managed-instance/transact-sql-tsql-differences-sql-server). The `backup` provisioner (preview) restores from a `.bak` path the server can reach, and Managed Instance restores only from URL, so don't plan on it there. Redgate's development database page suggests serverless or elastic pools to cut cost on Azure SQL Database, and notes a resumed serverless database can return error 40613 once; retry (https://documentation.red-gate.com/flyway/database-development-using-flyway/database-devops-practices/development-database-environment-configuration). Entra options are in Redgate's tutorial (https://documentation.red-gate.com/flyway/database-development-using-flyway/connecting-to-environments/tutorial-connect-using-microsoft-entra-id). The Azure Key Vault resolver is expected to use the Azure SDK's standard credential handling, so an `azure/login` sign-in on the runner should be picked up, but the resolver page doesn't describe sign-in; prove it with a test secret in the proof of concept (https://documentation.red-gate.com/flyway/reference/configuration/environments-namespace/environment-resolvers-namespace/azure-key-vault-resolver).
 
 **First three steps:**
 1. List each target's platform and network path, and pick the runner for each.
@@ -250,14 +250,14 @@ Microsoft Learn lists what each platform rejects (https://learn.microsoft.com/en
 
 ## 16. In daily use
 
-People ask: "Which of these are we?" (the assistant reads the repository and names the cards). "We're brownfield on Managed Instance with three teams" (cards 3, 6 and 11 together). "A new team is joining from SSDT" (card 5). "Someone fixed production last night" (card 15).
+People ask: "Which of these are we?" (the assistant reads the repository and names the cards). "We're brownfield on Managed Instance with three teams" (cards 3, 6 and 11 together). "A new team is joining from SSDT" (card 5). "We're on SQL Change Automation" or "We use SQL Source Control" (card 3, with file 31). "Someone fixed production last night" (card 15).
 
 ## 17. Limits
 
 - Flyway deploys one project at a time; cross-database release order is the pipeline's job.
 - Flyway doesn't stop one project changing another project's schema.
 - Azure SQL Database has no cross-database names or linked servers, whatever the tooling.
-- The backup, create-database, snapshot and docker provisioners are in preview.
+- The `backup`, `create-database`, `snapshot` and `docker` provisioners are (preview) on their reference pages (file 25). Backup as Baseline relies on the `backup` provisioner (preview) and remains this library's preferred baseline route (file 07, section 4).
 - Cards are starting points. A team's real constraints override them, recorded in your decision log (file 01).
 
 ## 18. Instructions for the AI assistant using this file

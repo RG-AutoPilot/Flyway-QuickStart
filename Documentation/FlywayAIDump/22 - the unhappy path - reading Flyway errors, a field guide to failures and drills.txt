@@ -1,8 +1,8 @@
-Flyway Enterprise AI library - file 22 of 31
+Flyway Enterprise AI library - file 22 of 32
 The unhappy path - reading Flyway errors, a field guide to failures and drills
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
-What this covers: What to do when a Flyway run fails, so everyone works from one playbook before it first happens in production: how to read a Flyway error, a five-question triage, the first five minutes of a production failure, fourteen scenario cards for SQL Server on-premises and Azure SQL with GitHub Actions, and seven drills that run only on a sandbox or local database.
+What this covers: What to do when a Flyway run fails, so everyone works from one playbook before it first happens in production: how to read a Flyway error, a five-question triage, the first five minutes of a production failure, fourteen scenario cards for SQL Server on-premises and Azure SQL with GitHub Actions, seven drills that run only on a sandbox or local database, and an index of error codes and message prefixes.
 
 Not in this file: snapshot, drift, undo, repair and restore decisions in depth (file 14), version numbering and out-of-order rules (file 09), accounts and connection settings (file 10), workflow design (files 11 and 12), install, sign-in and connectivity faults (file 23), the drill mode script (file 27).
 
@@ -13,9 +13,10 @@ Contents:
 4. Where the evidence is
 5. Scenario cards
 6. Drills on a sandbox
-7. In daily use
-8. Limits
-9. Instructions for the AI assistant using this file
+7. Error code and message index
+8. In daily use
+9. Limits
+10. Instructions for the AI assistant using this file
 
 ## 1. How to read a Flyway error
 
@@ -23,12 +24,12 @@ Read in this order: which environment (Flyway prints the one it works on from en
 
 | Evidence | How to get it |
 |---|---|
-| Exit code | Redgate documents two: `1` for a failure that isn't categorized, `35` for any licensing failure. Don't branch on other values |
-| Error code | `-outputType=json` puts errors in the JSON payload instead of on stderr, with the code in `error.errorCode` (Redgate's GitHub actions read it there). Branch on codes, not message text |
-| Debug output | Rerun the same command with `-X`; add `-outputFile=<path>` when output is long |
+| Exit code | Any non-zero exit is a failure. Redgate documents `1` (a failure that isn't categorized) and `35` (any licensing failure). From engine 12.9.0 some failures return a distinct exit code derived from the error code, and the mapping isn't published. Branch only on `35`; never test for `== 1` |
+| Error code | `-outputType=json` puts errors in the JSON payload instead of on stderr, with the code in `error.errorCode` (Redgate's GitHub actions read it there). Migrate failures add `sqlState`, `sqlErrorCode`, `lineNumber` and `path`; SQL Server connection errors add `subErrorCode`. That field list comes from the engine source; Redgate's docs don't define it. Branch on codes, not message text |
+| Debug output | Rerun the same command with `-X`; add `-outputFile=<path>` when output is long. Without `-X`, a failed statement shows only "Run Flyway with -X option to see the actual statement causing the problem". Don't rely on `-X` to show where each setting came from: on a current engine it didn't print config origins before a connection failed |
 | Schema history | `flyway info`, read-only. It doesn't check checksums, so add `flyway validate` when one is in doubt |
 
-The engine's message wording below comes from its source and can change between versions. Match on the code.
+The engine's message wording below comes from its source and can change between versions. Match on the code. Section 7 has the full code and message index.
 
 | Message starts | Code |
 |---|---|
@@ -52,7 +53,7 @@ Answer in order before anyone fixes anything.
 | 4. What do I do? | The matching card's Do line, decided by a person |
 | 5. What must I not do? | The card's Don't line. Always: no rerun loops, no hand-run SQL in production, no automated `repair` |
 
-History touched in production plus an unhealthy application is an incident: the DBA and release owner decide together using file 14. A failed transactional migration rolls back and leaves no Failed row.
+History touched in production plus an unhealthy application is an incident: the DBA and release owner decide together using file 14. A failed transactional migration rolls back and leaves no Failed row. Before engine 13.9.0, "Migration of ... failed! Changes successfully rolled back." could appear even when the rollback itself threw an exception, so on older engines confirm with `flyway info` and check the target for partial changes.
 
 ## 3. The first five minutes in production
 
@@ -108,9 +109,9 @@ Each card: Symptom, Means, Blast radius, Do, Don't, Prevent.
 
 ### Card 3. Version collision from two teams
 - Symptom: `DUPLICATE_VERSIONED_MIGRATION`; the message lists both offending files.
-- Means: two branches generated the same version.
+- Means: two branches generated the same version. It can also be one file found twice: the same folder listed twice in `locations`, or copies sitting in a build output folder that `locations` reaches.
 - Blast radius: nothing ran.
-- Do: the team whose migration has not reached a shared environment renumbers it, then reruns the checks.
+- Do: the team whose migration has not reached a shared environment renumbers it, then reruns the checks. If both paths point at the same file, de-duplicate `locations` instead.
 - Don't: delete either file, or rename one that has already run (that causes card 1).
 - Prevent: timestamped versions and the collision check in file 09.
 
@@ -128,7 +129,7 @@ Each card: Symptom, Means, Blast radius, Do, Don't, Prevent.
 - Blast radius: nothing deployed; the gate worked.
 - Do: one decision per object (file 14, section 6): incorporate, revert or accept, each by a person.
 - Don't: rerun with `skip-drift-check: true` to ship without a recorded decision. If a person decides to skip once, record why in the ticket and remove it in the next commit.
-- Prevent: emergency changes through the hotfix path (file 15) and a scheduled drift job.
+- Prevent: emergency changes through the hotfix path (file 15) and a scheduled drift job. Run each gate as its own pipeline step: `check -drift` with `failOnDrift` and `check -code` with `failOnError` don't stop later verbs chained in the same command, so `flyway check -drift migrate` can still deploy.
 
 ### Card 6. Blocked by locks or timeouts on a busy table
 - Symptom: the migration hangs, or fails with a lock time-out message.
@@ -172,10 +173,10 @@ Each card: Symptom, Means, Blast radius, Do, Don't, Prevent.
 
 ### Card 11. Baseline mismatch on a new environment
 - Symptom: `NON_EMPTY_SCHEMA_WITHOUT_SCHEMA_HISTORY_TABLE`; or a deploy "succeeds" but applies little, and `flyway info` shows a baseline row.
-- Means: the database was built outside Flyway, or the baseline version doesn't match its real state. Redgate's `migrations/deploy` action defaults `baseline-on-migrate` to `true`, so it baselines silently.
+- Means: the database was built outside Flyway, or the baseline version doesn't match its real state. Redgate's `migrations/deploy` action defaults `baseline-on-migrate` to `true`, so it baselines silently. On a database Flyway has already run against, it can also mean `table`, `defaultSchema` or `schemas` differ from the run that created the history table, so Flyway looks for it in the wrong place.
 - Blast radius: history created; migrations below the baseline never run.
-- Do: choose the baseline version deliberately (file 07). If the wrong database was baselined, the DBA decides about the history table.
-- Don't: run `clean` to start again.
+- Do: first find out whether a history table already exists in another schema or under another name, and compare `table`, `defaultSchema` and `schemas` with the environment that worked. If they differ, fix the config. Otherwise choose the baseline version deliberately (file 07). If the wrong database was baselined, the DBA decides about the history table.
+- Don't: run `clean` to start again, or baseline a second history table when the first one is just in a place the config doesn't point at.
 - Prevent: `baseline-on-migrate: 'false'` on deploy steps and an explicit baseline per environment.
 
 ### Card 12. A hotfix applied through the old script runner
@@ -199,7 +200,7 @@ Each card: Symptom, Means, Blast radius, Do, Don't, Prevent.
 - Means: the script is saved as UTF-16. SSMS saves new scripts as UTF-16 by default, and older SQL Compare and SQL Data Compare defaults did too; Flyway reads UTF-8 unless `encoding` says otherwise.
 - Blast radius: nothing ran.
 - Do: re-save the file as UTF-8 and rerun. If the migration has already run anywhere, re-encoding changes its checksum, which is card 1's decision.
-- Don't: leave `detectEncoding` on as a permanent fix. A file it can't detect is read with the configured encoding without an error, so characters can be corrupted silently.
+- Don't: leave `detectEncoding` on as a permanent fix. A file it can't detect is read with the configured encoding without an error, so characters can be corrupted silently. `detectEncoding = true` also isn't supported in Flyway Desktop.
 - Prevent: change the SSMS new-query template and SQL Compare's script encoding to UTF-8, and add a pull request check that fails on a UTF-16 byte order mark in `migrations/`.
 
 ## 6. Drills on a sandbox
@@ -215,7 +216,7 @@ docker run --name flyway-drill -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=<passwor
 # Reset after every drill: docker rm -f flyway-drill
 ```
 
-The scratch project is the only place `cleanDisabled = false` is allowed. Set `mixed = true` under `[flyway]` in it for the failed-migration drill, and note what your team's `flyway.toml` holds. Say the drill name to start: "Run drill: checksum mismatch", "version collision", "failed migration", "lock timeout", "drift", "undo" or "hotfix reconcile".
+`cleanDisabled = false` belongs only on build, shadow and scratch databases, set on that environment alone (file 13 covers build); in a drill, set it in the scratch project, never in your team's `flyway.toml` for a shared environment. Set `mixed = true` under `[flyway]` in it for the failed-migration drill, and note what your team's `flyway.toml` holds. Say the drill name to start: "Run drill: checksum mismatch", "version collision", "failed migration", "lock timeout", "drift", "undo" or "hotfix reconcile".
 
 ### Run drill: checksum mismatch
 - Setup: `V1__create_t.sql` and `V2__add_row.sql`; `flyway migrate`.
@@ -262,22 +263,92 @@ The scratch project is the only place `cleanDisabled = false` is allowed. Set `m
 - Recover: copy it in as `V3`; `flyway info` shows it as the only pending migration; then `flyway migrate -environment=drill -cherryPick=3 -skipExecutingMigrations=true`; take a fresh snapshot; rerun the check, which passes.
 - Learned: the whole loop from out-of-band change to source control (file 14).
 
-## 7. In daily use
+## 7. Error code and message index
+
+Codes are the `error.errorCode` value in `-outputType=json` output. Redgate's "Exit codes and error codes" pages list them by category (General, Validate, Check, Prepare, Comparison, Docker). The Means column shortens Redgate's "Caused by" text. Tooling and connection codes point to file 23.
+
+| Code | Means | Go to |
+|---|---|---|
+| `FAULT` | Unexpected internal error | Straight to Redgate Support (file 23, section 10) |
+| `ERROR`, `CONFIGURATION` | Invalid or incorrect configuration or usage | File 23, section 4; file 10 |
+| `JDBC_DRIVER` | The JDBC driver can't be instantiated | File 23, section 4 |
+| `DB_CONNECTION` | A SQL problem reported by the driver: a failed statement or a failed connection | The SQL Server error under it; cards 4, 6, 7, 8; file 23, section 5 |
+| `DUPLICATE_VERSIONED_MIGRATION`, `DUPLICATE_REPEATABLE_MIGRATION`, `DUPLICATE_UNDO_MIGRATION` | The same version, description or undo target appears twice | Card 3 |
+| `DUPLICATE_DELETED_MIGRATION` | Schema history or filesystem corruption | Stop; the DBA and Redgate Support |
+| `NON_EMPTY_SCHEMA_WITHOUT_SCHEMA_HISTORY_TABLE` | A database with objects but no history table, or `table`, `defaultSchema` or `schemas` differ from the run that created it, so Flyway looks in the wrong place | Cards 11 and 13; file 07. If the config differs, fix it; don't baseline a second history table |
+| `VALIDATE_ERROR` | Wrapper: some migrations failed validation. Read the lines after it | The code on the next line |
+| `SCHEMA_DOES_NOT_EXIST` | The target schema is missing | File 10 (`schemas`, `createSchemas`) |
+| `CHECKSUM_MISMATCH`, `DESCRIPTION_MISMATCH`, `TYPE_MISMATCH` | An applied file was edited, renamed or retyped | Card 1 |
+| `RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED`, `RESOLVED_REPEATABLE_MIGRATION_NOT_APPLIED` | A local file isn't applied: out of order, or pending when validate runs before migrate | Card 2 |
+| `APPLIED_VERSIONED_MIGRATION_NOT_RESOLVED`, `APPLIED_REPEATABLE_MIGRATION_NOT_RESOLVED` | An applied file is missing locally: wrong `locations` or working directory, the wrong branch, or a deleted file | Fix paths and branch first; file 14 before any `repair`, which a person decides and runs |
+| `FAILED_VERSIONED_MIGRATION`, `FAILED_REPEATABLE_MIGRATION` | A Failed row in history | Card 4 |
+| `OUTDATED_REPEATABLE_MIGRATION` | A repeatable migration changed and will rerun on `migrate` | Informational |
+| `PLUGIN_CHECK_MISSING_BUILD_TARGET` | `check -changes` needs a build environment or deployed snapshot; `check -drift` needs a build environment or next snapshot | File 23, section 7; file 13 |
+| `CHECK_BUILD_NO_PROVISIONER` | The build environment has no provisioner and clean is disabled | Give the build environment a `clean` provisioner, or `cleanDisabled = false` on that environment only (file 13) |
+| `CHECK_DRIFT_DETECTED` | `check -drift` with `failOnDrift` found differences | Card 5 |
+| `PREPARE_ABORT_ON_WARNINGS` | Deployment warnings exceed the `[flyway.prepare] abortOnWarningSeverity` threshold (`None`, `Low`, `Medium`, `High`; it takes a severity, not `true`) | Read the warnings, usually data loss or a table rebuild, and handle them in source. Raising the threshold to pass is a reviewer's decision (file 11) |
+| `COMPARISON_ERROR` | A comparison configuration error | The message detail; file 23, section 8 |
+| `COMPARISON_FAULT` | An unexpected comparison failure | Straight to Redgate Support |
+| `COMPARISON_BINARY_MISSING` | The comparison libraries are missing | Reinstall Flyway (file 04) |
+| `COMPARISON_ENGINE_UPDATE_REQUIRED` | The project files were written by a newer Flyway, usually Desktop newer than the CLI | Update the CLI to match (file 23, section 3) |
+| `COMPARISON_DATABASE_CONNECTION_FAILED`, `COMPARISON_REGISTRATION_FAILED` | The comparison engine can't connect, or can't read a source (an invalid schema model or a metadata query problem) | The comparison engine has its own connection: file 23, sections 5 and 8; a schema model file named in the message |
+| `COMPARISON_ARTIFACT_NOT_FOUND`, `COMPARISON_ARTIFACT_DESERIALIZE_FAILED`, `COMPARISON_ARTIFACT_SERIALIZE_FAILED` | The diff artifact isn't where the next command looks, or parallel jobs share it | Run `diff` and the command that reads it in one invocation or the same working directory; one artifact path per job; rerun `diff` |
+| `COMPARISON_MAPPING_FAILED`, `COMPARISON_APPLY_TO_TARGET_FAILED`, `COMPARISON_GENERATE_DEPLOYMENT_SCRIPT_FAILED`, `COMPARISON_GENERATE_UNDO_SCRIPT_FAILED`, `COMPARISON_RETRIEVE_OBJECT_DETAILS_FAILED`, `COMPARISON_SNAPSHOT_FAILED` | A comparison stage failed; the detail is in the message | The message; Redgate Support if it repeats |
+| `COMPARISON_DATABASE_NOT_SUPPORTED` | No comparison engine for that database type | Doesn't apply to SQL Server; check the project's database type |
+| `DOCKER_NOT_INSTALLED`, `DOCKER_NOT_RUNNING`, `DOCKER_EULA_NOT_ACCEPTED` | The Docker provisioner (preview) is missing Docker, Docker isn't running, or the SQL Server EULA isn't accepted (`iAgreeToTheDBVendorsEula = true` on that environment's provisioner) | Only when a build or shadow environment uses the Docker provisioner (file 16). `DOCKER_NOT_RUNNING` on a Linux runner can mean the account running Flyway isn't in the `docker` group: add it |
+
+SQL Server connection sub-codes, in the JSON `subErrorCode` field (engine source, not on Redgate's pages): `CONNECTION_FAILURE`, `UNTRUSTED_CERTIFICATE`, `INTEGRATED_AUTH_NOT_SUPPORTED`, `INTERACTIVE_AUTH_DRIVERS_MISSING` (file 23, sections 5 and 6). Also in the engine source but not on Redgate's pages, so their meaning is inferred from the name: `CONFIGURATION_RECOVERABLE`, `FAILED_BASELINE_MIGRATION` (treat like card 4), `ENVIRONMENT_RESOLVE` and `ENVIRONMENT_PROVISION` (a resolver or provisioner failed).
+
+Message prefixes, verbatim from the engine source or Redgate's docs, beyond the five in section 1. `...` marks text Flyway fills in.
+
+| Message starts | Code | Go to |
+|---|---|---|
+| "Validate failed: Migrations have failed validation" | `VALIDATE_ERROR` | Read the next line |
+| "Migration of ... failed! Changes successfully rolled back." | `DB_CONNECTION`, with the SQL Server error below it | The SQL error; cards 6 to 8. Before engine 13.9.0, confirm the rollback with `flyway info` |
+| "Migration of ... failed! Please restore backups and roll back database and code!" | `DB_CONNECTION` | Card 4 |
+| "Found non-empty schema(s) ... but no schema history table" | `NON_EMPTY_SCHEMA_WITHOUT_SCHEMA_HISTORY_TABLE` | Cards 11 and 13. On a database Flyway has run against before, compare `table`, `defaultSchema` and `schemas` with the run that created the history table; fix the config rather than baseline a second history table |
+| "Unable to baseline schema history table" | `ERROR` | File 07 |
+| Warning: "All configured schemas are empty; a baseline marker will not be added to Flyway's schema history table. ..." | | `schemas` points at an empty schema, so Flyway treats the database as new. Correct `schemas` (file 10); file 07 |
+| "Waiting for lock on Flyway schema history table" / "Unable to acquire SQL Server application lock" | | Card 6; file 23, section 9 |
+| "Unable to execute clean as it has been disabled" | | Working as intended on a shared environment. Never enable clean to get past it (file 10) |
+| "ERROR: Clean is disabled - unable to configure clean provisioner" | `CHECK_BUILD_NO_PROVISIONER` | The row above |
+| "No value provided for placeholder:" | | File 10. Besides a placeholder missing for that environment, the script may hold SQL that only looks like `${...}` (dynamic SQL or JSON), or SQLCMD `$(var)` from SQL Change Automation or SQL Source Control scripts (file 31), which isn't a Flyway placeholder. Escape it with `placeholderReplacement = false`, a per-script config, or a different placeholder prefix and suffix |
+| "Detected both transactional and non-transactional statements within the same migration" | | Card 4; file 14, section 9 |
+| "Detected both transactional and non-transactional migrations within the same migration group" | | Appears when `group = true` and a pending migration runs outside a transaction. Card 4; file 14, section 9 |
+| "Skipping filesystem location:" / "No migrations found. Are your locations set up correctly?" | | File 23, section 4 |
+| "Unable to obtain connection from database" | `DB_CONNECTION`, with a sub-code | File 23, sections 5 and 6 |
+| "Unable to connect to the database. Configure the url, user and password!" | `CONFIGURATION` | No config was loaded: file 23, section 4 |
+| "No Flyway database plugin found to handle" / "No JDBC driver found to handle" / "Unsupported Database:" | | File 23, section 4 |
+| "Unable to instantiate JDBC driver: ... => Check whether the jar file is present" | `JDBC_DRIVER` | The driver class can't be loaded: check its jar is present in the install's `drivers` folder; a damaged install is best fixed by reinstalling the CLI (file 23, section 4) |
+| "Unknown configuration property" | `CONFIGURATION` | File 23, section 4 |
+| `ObsoleteConfigurationParametersException` | | From engine 12.6.0, the error when the only problem is obsolete settings. Remove or replace the obsolete settings (file 10) |
+| "Unable to resolve environment variable: '...'" | | File 23, section 4 |
+| "ERROR: Failed to configure parameters: ... Environment '...' not found." | | File 23, sections 3 and 4 |
+| "Upgrade required: ... is not supported by" | Licensing, exit 35 | File 23, section 2 |
+| "Flyway permit on disk is outdated" / "Flyway permit on disk is expired" | Licensing | File 23, section 2 |
+| "Your ... license has expired and is no longer valid" | Licensing | File 23, section 2 |
+| "ERROR: Invalid argument: -check" / "Invalid flag" | | Quoting in PowerShell or Azure DevOps: file 23, sections 4 and 11. "Invalid flag: init" from the open-source build means `init` needs a Redgate edition (file 23, section 2) |
+| "Run Flyway with -X option to see the actual statement causing the problem" | | Rerun with `-X` (section 1) |
+
+## 8. In daily use
 
 - Developers: read a red build with section 1 and name the card in the pull request.
 - DBAs: use the section 4 query in release windows.
 - Release owners: section 3 is the runbook.
 
-## 8. Limits
+## 9. Limits
 
 - Error message wording changes between versions; match on error codes.
 - No command reverses a partially applied non-transactional migration. Clean-up is manual and decided by a person.
-- Only exit codes 1 and 35 are documented; use JSON error codes or action outputs for anything finer.
+- `validate` doesn't catch edits to a `B__` baseline migration (field report, GitHub issue 4106). Treat baseline scripts as immutable once used, like any applied migration (card 1).
+- Only exit codes 1 and 35 are documented. From engine 12.9.0 other non-zero codes can appear, derived from the error code, with no published mapping. Treat any non-zero exit as failure, branch only on 35, and use JSON error codes or action outputs for anything finer.
+- The sub-codes and source-only codes in section 7 come from the engine source, not Redgate's pages, and can change.
 
-## 9. Instructions for the AI assistant using this file
+## 10. Instructions for the AI assistant using this file
 
 - Ask for the exact error text, the command or workflow step, the environment and the `flyway info` output, one at a time, before suggesting a fix.
-- Work through section 2, name the card, and give its Do and Don't lines together.
+- Work through section 2, name the card, and give its Do and Don't lines together. Match the error code or message prefix in section 7 before reasoning from first principles.
+- When writing exit-code handling, treat any non-zero exit as failure and branch only on 35; never test for `1`.
 - Never suggest `repair`, `undo`, `outOfOrder`, `skipExecutingMigrations`, `clean`, `skip-drift-check` or hand-run SQL in production as a quick fix; each needs a person's decision. Never write `repair` into a pipeline or script.
 - Run or script drills only against a local container or a throwaway sandbox database. If asked to drill on CI, `build`, `test`, `uat` or production, refuse and offer the local version.
 - If nothing matches, say so. For install, sign-in or connectivity problems, switch to file 23.

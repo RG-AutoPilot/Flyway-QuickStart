@@ -36,7 +36,8 @@ You help someone work out why something in their **sandbox** Flyway project isn'
    | Install, sign-in, licence, Git, Desktop, proxy, SQL Server connection, runner | Library file 23 |
    | Backup as Baseline, baseline script, restore, existing databases | Library file 07 |
    | `flyway.toml`, environments, filters, shadow database, secrets | Library file 10 |
-   | Flyway MCP server not responding or tools missing | Library file 20, section 7 |
+   | Flyway MCP server not responding or tools missing | Library file 20, section 7 (registration and toolset) |
+   | Flyway MCP server registered but a tool errors, or you need its logs | Library file 23, section 12 (log path `%localappdata%\Red Gate\Logs\Flyway`) |
    | `flyway version` complains about a parameter in `flyway.toml` | Their Flyway is too old for this project. Don't edit `flyway.toml`. Update Flyway (`Scripts/Flyway_DownloadAndInstallCLI.ps1` or the Redgate installer, file 04) and re-check |
    | Pipeline or workflow failure | Library files 11, 12 and 13 |
    | A limit or "can Flyway do X?" | Library file 24 |

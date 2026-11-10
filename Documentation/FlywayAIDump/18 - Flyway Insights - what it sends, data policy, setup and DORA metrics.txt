@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 18 of 31
+Flyway Enterprise AI library - file 18 of 32
 Flyway Insights - what it sends, data policy, setup and DORA metrics
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -27,7 +27,9 @@ Contents:
 
 PREVIEW: Redgate's documentation says "Flyway Insights is in public preview for Flyway Enterprise users. Features may change before general availability."
 
-It is a Redgate-hosted website at `https://flyway.red-gate.com`, signed into with a Redgate ID. When publishing is on for a project, Flyway sends the result of each `migrate`, `deploy` and `flyway check -drift`. You then see what was deployed, when and where, without connecting to each environment. It was previously called Flyway Pipelines. The publishing setting is still `publishResult`, and some pages still use the old name. You can explore sample data before publishing anything.
+The preview covers all of Flyway Insights: the Deployments, Drift, Deployment metrics (DORA) and Business value (ROI) pages, not just one view.
+
+It is a Redgate-hosted website at `https://flyway.red-gate.com`, signed into with a Redgate ID. When publishing is on for a project, Flyway sends the result of each `migrate`, `deploy` (from engine 13.6.0) and `flyway check -drift`. You then see what was deployed, when and where, without connecting to each environment. It was previously called Flyway Pipelines. The publishing setting is still `publishResult`, and some pages still use the old name. You can explore sample data before publishing anything.
 
 Documentation: https://documentation.red-gate.com/fd/flyway-insights-367919120.html
 
@@ -75,7 +77,7 @@ If any answer is no, read section 12.
 
 ## 5. Setup from Flyway Desktop
 
-Prerequisites: a Flyway Enterprise license, the Redgate edition of the CLI or Docker image (the open-source edition doesn't publish), Flyway Desktop 9.10.2 or later if you configure from Desktop, a `flyway.toml` project, and a Redgate ID in your Redgate organization.
+Prerequisites: a Flyway Enterprise license, the Redgate edition of the CLI or Docker image (the open-source edition doesn't recognise `publishResult` from engine 13.2.0, so it doesn't publish), online authentication with that license (a personal access token in pipelines, `flyway auth` or Desktop sign-in on a workstation), Flyway Desktop 9.10.2 or later if you configure from Desktop, a `flyway.toml` project, and a Redgate ID in your Redgate organization. Earlier Desktop versions honour `publishResult` but can't set it.
 
 Publishing is a project setting in `flyway.toml`, so it applies to everyone using the project and to the pipeline once committed.
 
@@ -121,7 +123,7 @@ Both snippets are from Redgate's "Get started with Flyway Insights" page: https:
     baseline-on-migrate: 'false'   # the action defaults to 'true'; see file 12
 ```
 
-Set the same variable on the drift-check step only if you've agreed to publish drift results. Dry runs aren't published, so a preview never counts as a deployment. In Insights, Deployments then Add pipeline walks through the same steps.
+Set the same variable on the drift-check step only if you've agreed to publish drift results. Dry runs aren't published (from engine 13.7.0), so a preview never counts as a deployment. In Insights, Deployments then Add pipeline walks through the same steps.
 
 Settings at a glance:
 
@@ -162,7 +164,7 @@ How it interacts with pipelines (section 6): command-line parameters beat enviro
 
 | Page | Shows |
 |---|---|
-| Deployments | Each project with its latest status: Deploy Succeeded, Deploy Failed or Drift Detected. Per environment: every deployment with status, time and duration, the script names applied, and drift checks. Hide No-Op hides migrate runs that applied nothing. Migrations-based deployments only |
+| Deployments | Each project with its latest status: Deploy Succeeded, Deploy Failed or Drift Detected. Per environment: every deployment with status, time and duration, the script names applied, and drift checks. Hide No-Op hides migrate runs that applied nothing. Migrations-based deployments only: Redgate's Deployments page says "only migrations-based deployments are shown on this page" |
 | Drift | Investigate opens a report with the expected and actual definition of each drifted object. Statuses: Passed, Alert unresolved, Alert resolved. Mark as resolved records that someone dealt with it, for example by adding the hotfix to your migrations |
 | Deployment metrics | Five delivery metrics across all pipelines or per pipeline, with trends. Export to PDF |
 | Business value (ROI) | A prediction from your inputs, then measured savings after 90 days of data. Redgate states these are estimates. Your inputs stay private |
@@ -184,7 +186,7 @@ What counts:
 - Lead time needs a UTC timestamp in `yyyyMMddHHmmss` format after the version, for example `V1_20260928143000__<ticket-key>_add_customer_table.sql`. Desktop names scripts like this by default, and `flyway add` with `-add.timestamp=true` can add one. Scripts without a timestamp, and state-based deployments, aren't included in lead time. Generated timestamps are UTC from engine 13.7.0, which matters to teams working across time zones.
 - Lead time starts at the filename timestamp, not when work started or the commit was made. Recovery time is days to the next successful deployment, not time to restore service. These are narrower than the research program's own definitions, so don't set an Insights figure against a published performance band.
 - The Environments filter lets you count production only. Period (default 90 days) and window (default 30 days) each range from 1 to 365. Selections are personal and appear in the page address, so you can share a view.
-- Lead time excludes state-based deployments (DORA metrics page). Whether the other metrics count them isn't stated on that page, so check in your trial before comparing state-based and migrations-based projects.
+- State-based deployments count in the metrics but not on the Deployments page. Redgate's Deployments page (updated 1 October 2026) says "All deployments (state and migrations) are included in the DORA and ROI pages". Lead time is the exception: it excludes state-based deployments (DORA metrics page). Check in your trial before comparing state-based and migrations-based projects.
 
 Documentation: https://documentation.red-gate.com/fd/dora-metrics-368508949.html
 
@@ -224,6 +226,7 @@ Keep evidence in systems you control (file 17). For delivery metrics without a h
 
 - "Is Insights on for this environment?" Check the root `publishResult` and the environment's `[environments.<name>.flyway]` table in `flyway.toml`, then `FLYWAY_PUBLISH_RESULT` and `-publishResult` in the workflow.
 - "Why is my deployment missing?" Publishing off for that run, the token not mapped, no outbound access, the open-source edition, or the pipeline's Redgate ID isn't in the organization.
+- "Why does Insights show nothing at all?" Two causes to rule out first. The run used the open-source edition, which ignores `publishResult` from engine 13.2.0; usually licensing didn't reach the runner, so check the edition with `flyway version` in that job (file 23, section 2). Or the project still uses a `.conf` file: Redgate's Pipelines quickstart says "The service does not work with older flyway.conf files." Convert it to `flyway.toml` (file 10).
 - "Why is lead time empty?" No timestamp in the filenames, or a state-based project.
 - "Show leadership our numbers." Filter to production and state the section 9 definitions beside the figures.
 
@@ -231,7 +234,7 @@ Keep evidence in systems you control (file 17). For delivery metrics without a h
 
 - Public preview, Redgate-hosted in the EU, with no self-hosted option described.
 - Drift results include DDL, with no count-only setting, and no retention period is stated.
-- The Deployments page shows migrations-based deployments only, and lead time excludes state-based deployments.
+- The Deployments page shows migrations-based deployments only. The DORA and ROI pages include state-based deployments too, except lead time, which excludes them.
 - Manual deployments from Desktop aren't published out of the box.
 - Per-environment publishing depends on the engine (later than 13.10.0) and on one mechanism per project; prove it on your pinned version (section 7).
 - A deployment that succeeds but breaks production isn't counted as a failure.

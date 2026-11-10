@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 05 of 31
+Flyway Enterprise AI library - file 05 of 32
 Proof of concept - success criteria, plan, checklist and evidence
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -56,7 +56,7 @@ One row per objective, in your priority order (log them in your decision log, fi
 
 Anonymized copies of production data come from your own approved process, outside Flyway (file 16). Flyway applies migrations to whatever copy that process produces.
 
-All the checks used here are part of Flyway Enterprise. Drift can be flagged only after a first deployment has saved a snapshot (Redgate's deploy action README), so deploy through the pipeline once before the drift use case.
+All the checks used here are part of Flyway Enterprise. `check -drift` compares the target with one of three things: the snapshot embedded in the target's snapshot history table by an earlier deployment (the default), a deployed snapshot file you keep between runs (`check.deployedSnapshot`), or a build environment that replays the target's applied migrations (migrations-based only). From engine 11.17, a first run with no saved snapshot succeeds with a warning instead of failing, so it reports no drift rather than catching any (Redgate's deploy action README says the same: drift can be flagged only after a deployment has saved a snapshot). For the drift use case, either deploy through the pipeline once first, or use the build-environment comparison (file 14).
 
 ## 4. Day plan (a template)
 
@@ -120,7 +120,7 @@ Result: pass / fail / partial, with notes and date
 
 ## 7. Ten ready-made use cases
 
-Adapt names, objects and tickets at kickoff. Every command below exists in Redgate's command reference. Use your own `ci/<environment>.toml` per step (file 10).
+Adapt names, objects and tickets at kickoff. Every command below exists in Redgate's command reference. Point each step at its environment with `-environment=<name>`, from the shared `flyway.toml` or, if you scope secrets per job, a `ci/<environment>.toml` per step (file 10).
 
 UC1: Two teams add migrations in parallel. Objectives 1, 2, 4.
 1. Teams A and B branch from main and each generates a migration with its ticket key in the name (file 08).
@@ -234,7 +234,7 @@ Keep the report from every `flyway check` run, not only failures. Redgate's chec
 |---|---|
 | Git authentication or the proxy blocks Desktop | Prove `git fetch` and `git push` first; clone outside Desktop and open the project from disk (file 04, section 4) |
 | Flyway loses internet access behind a proxy | From engine 13.9.0 the OS proxy isn't inherited by default. Set `FLYWAY_USE_SYSTEM_PROXIES=true` on Windows, or the proxy in `JAVA_ARGS` on Linux and Docker (file 04) |
-| The open-source build, or no Enterprise license, so steps are skipped | Make `flyway --version` the first job step and fail the job unless it reports Enterprise |
+| The open-source build, or no Enterprise license, so steps are skipped | Make `flyway version` the first job step and fail the job unless it reports Enterprise |
 | The check or shadow account lacks rights | Compare as both the check and deploy accounts; pre-create shadow schemas with the same casing |
 | The runner can't reach on-premises SQL Server | `flyway testConnection` from the runner, with the port in the URL (file 04, section 6) |
 | Azure SQL firewall or private endpoint blocks the runner | Use the `database.windows.net` name and check the rules (file 23) |

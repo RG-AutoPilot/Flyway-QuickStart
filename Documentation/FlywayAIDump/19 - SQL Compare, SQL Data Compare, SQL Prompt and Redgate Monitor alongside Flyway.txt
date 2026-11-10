@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 19 of 31
+Flyway Enterprise AI library - file 19 of 32
 SQL Compare, SQL Data Compare, SQL Prompt and Redgate Monitor alongside Flyway
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -48,8 +48,13 @@ Redgate's Redgate Compare SQL Server namespace page says SQL Compare options are
 
 What isn't shared:
 - **Defaults.** Flyway's option defaults can differ from SQL Compare's. Set the same options on both sides before you compare results.
-- **Fixed options.** The same page lists 15 SQL Compare options hard-coded in Flyway. Four matter when you hand-author a script: `NoTransactions`, `NoErrorHandling`, `DoNotOutputCommentHeader` and `NoDeploymentLogging` are all true. Set the same four in SQL Compare, because Flyway owns transactions at run time.
+- **Fixed options.** The same page lists 15 SQL Compare options hard-coded in Flyway. Four matter when you hand-author a script: `NoTransactions`, `NoErrorHandling`, `DoNotOutputCommentHeader` and `NoDeploymentLogging` are all true. Set the same four in SQL Compare, because Flyway owns transactions at run time. Another fixed option is `AddDatabaseUseStatement=false`, so a Flyway script never switches database with `USE`; turn it off in SQL Compare too before you compare output.
+- **Removed options.** `IgnoreSynonymDependencies` was removed from Flyway's options (from engine 12.1.0), so a SQL Compare project that relies on it won't match Flyway's output.
 - **Snapshots.** SQL Compare `.snp` files and Flyway snapshots are separate formats.
+- **Object coverage.** Flyway's docs don't publish a per-object-type support list for SQL Server; coverage follows the SQL Compare engine, so use the SQL Compare documentation for that list. That it's identical in every case is unverified, so prove unusual object types on a development database.
+- **Desktop features.** Flyway Desktop has no object locking and no SSMS integration. Redgate has said it has no plans for locking without demand. Coordinate who edits which object through Git and code owners (file 09).
+
+"Same engine" doesn't mean the generated SQL matches what SQL Compare would write for you: the defaults and fixed options above differ, so compare like with like.
 
 ## 3. SQL Compare: the jobs it does well
 
@@ -224,6 +229,8 @@ From engine 13.8.0, Flyway connections report the application name `Redgate_Flyw
 
 - SQL Compare and SQL Data Compare cover SQL Server, including Azure SQL.
 - A compare-tool deployment leaves no record in Flyway's history.
+- Flyway and SQL Compare share an engine but not defaults or fixed options, so their scripts can differ. Flyway publishes no per-object-type support list for SQL Server.
+- Flyway Desktop has no object locking and no SSMS integration.
 - Exit code 63 means identical or nothing included. Use `/assertidentical` in SQL Compare.
 - SQL Data Compare doesn't mask data, and its command line has no WHERE switch.
 - SQL Prompt's code analysis is advice in the editor, not a pipeline gate.
@@ -234,6 +241,7 @@ From engine 13.8.0, Flyway connections report the application name `Redgate_Flyw
 ## 12. Instructions for the AI assistant using this file
 
 - Ask first whether the target is Flyway-managed. If it is, never suggest `/synchronize`. Suggest a script, then a Flyway migration.
+- Never say Flyway's generated SQL will match SQL Compare's because they share an engine. Name the differences in section 2.
 - Use only the switches and exit codes in this file. For anything else, point to `sqlcompare /help` or the switches page in file 26.
 - Any compare check you write uses `/assertidentical`, or treats exit code 63 as "verify something was included".
 - Mark every command you compose with the "Not from Redgate docs" line. Use integrated or Entra authentication, never literal passwords.
