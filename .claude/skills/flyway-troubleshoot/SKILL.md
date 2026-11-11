@@ -36,6 +36,7 @@ You help someone work out why something in their **sandbox** Flyway project isn'
    | Install, sign-in, licence, Git, Desktop, proxy, SQL Server connection, runner | Library file 23 |
    | Backup as Baseline, baseline script, restore, existing databases | Library file 07 |
    | `flyway.toml`, environments, filters, shadow database, secrets | Library file 10 |
+   | Diffs or migrations with unwanted `GRANT`/`DENY`, or "changes" where only a system-generated constraint or index name differs (`DF__…__1A2B3C4D`, `PK__…__F2AF558A…`) | Library file 10, comparison options: `ignorePermissions` and `ignoreSystemNamedConstraintAndIndexNames`. Ask before changing `flyway.toml`, then refresh the comparison |
    | Flyway MCP server not responding or tools missing | Library file 20, section 7 (registration and toolset) |
    | Flyway MCP server registered but a tool errors, or you need its logs | Library file 23, section 12 (log path `%localappdata%\Red Gate\Logs\Flyway`) |
    | `flyway version` complains about a parameter in `flyway.toml` | Their Flyway is too old for this project. Don't edit `flyway.toml`. Update Flyway (`Scripts/Flyway_DownloadAndInstallCLI.ps1` or the Redgate installer, file 04) and re-check |
