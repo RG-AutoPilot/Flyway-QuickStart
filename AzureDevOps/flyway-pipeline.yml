@@ -1,0 +1,144 @@
+# Flyway sandbox pipeline (Azure DevOps, self-hosted Windows agent)
+#
+# Pull request into main that changes migrations/:
+#   rebuild the Build database from the baseline and every migration, then code review
+#   and a change report against Test. Nothing is deployed.
+# Push to main that changes migrations/ (or a manual run):
+#   the same, then report and deploy to Test, then Prod.
+#
+# Database connections come from flyway.toml, so there is nothing to edit here. One-time setup:
+#   1. A self-hosted Windows agent, in the "Default" agent pool, on a machine that can reach your
+#      database server (using another pool? change "pool" below). With Windows sign-in, the
+#      agent's service account needs access to the databases.
+#   2. Pipelines > Library > + Variable group, named "Flyway", with:
+#        FLYWAY_EMAIL, FLYWAY_TOKEN       your Redgate account email and a personal access token
+#                                         (mark the token secret):
+#        https://documentation.red-gate.com/flyway/flyway-cli-and-api/tutorials/tutorial-personal-access-tokens
+#        DB_USERNAME, DB_PASSWORD         only if you use a SQL login (mark the password secret)
+#   3. Pipelines > Environments: create "test" and "prod". Add an Approvals check to "prod" so
+#      the pipeline waits before Prod.
+#   4. Pipelines > New pipeline > Existing Azure Pipelines YAML file > /AzureDevOps/flyway-pipeline.yml
+#   With Azure Repos, pull request runs come from a branch policy on main (Build validation).
+
+trigger:
+  branches:
+    include: [ main ]
+  paths:
+    include: [ migrations ]
+
+pr:
+  branches:
+    include: [ main ]
+  paths:
+    include: [ migrations ]
+
+variables:
+  - group: Flyway
+
+pool:
+  name: Default
+
+stages:
+  - stage: Build
+    displayName: Build and review
+    jobs:
+      - job: Build
+        steps:
+          - checkout: self
+          - powershell: |
+              & .\Scripts\Flyway_DownloadAndInstallCLI.ps1
+              Write-Host "##vso[task.prependpath]C:\FlywayCLI"
+            displayName: Install Flyway CLI (skipped if already installed)
+          - powershell: |
+              .\Scripts\flyway-ci.ps1 clean -environment=Build -cleanDisabled=false
+              .\Scripts\flyway-ci.ps1 info migrate info -environment=Build
+            displayName: Rebuild Build from the baseline and all migrations
+            env:
+              FLYWAY_EMAIL: $(FLYWAY_EMAIL)
+              FLYWAY_TOKEN: $(FLYWAY_TOKEN)
+              DB_USERNAME: $(DB_USERNAME)
+              DB_PASSWORD: $(DB_PASSWORD)
+          - powershell: .\Scripts\flyway-ci.ps1 check -code -changes -dryrun -environment=Test "-reportFilename=reports/Build-check.html"
+            displayName: Code review and change report against Test
+            env:
+              FLYWAY_EMAIL: $(FLYWAY_EMAIL)
+              FLYWAY_TOKEN: $(FLYWAY_TOKEN)
+              DB_USERNAME: $(DB_USERNAME)
+              DB_PASSWORD: $(DB_PASSWORD)
+          - publish: reports
+            artifact: build-reports
+            displayName: Publish reports
+            condition: always()
+            continueOnError: true
+
+  - stage: Test
+    displayName: Deploy to Test
+    dependsOn: Build
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - deployment: Test
+        environment: test
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - powershell: |
+                    & .\Scripts\Flyway_DownloadAndInstallCLI.ps1
+                    Write-Host "##vso[task.prependpath]C:\FlywayCLI"
+                  displayName: Install Flyway CLI (skipped if already installed)
+                - powershell: .\Scripts\flyway-ci.ps1 check -changes -drift -dryrun -environment=Test "-reportFilename=reports/Test-check.html"
+                  displayName: Pre-deployment report (changes, drift, SQL to run)
+                  env:
+                    FLYWAY_EMAIL: $(FLYWAY_EMAIL)
+                    FLYWAY_TOKEN: $(FLYWAY_TOKEN)
+                    DB_USERNAME: $(DB_USERNAME)
+                    DB_PASSWORD: $(DB_PASSWORD)
+                - powershell: .\Scripts\flyway-ci.ps1 info migrate info -environment=Test "-migrate.saveSnapshot=true"
+                  displayName: Deploy
+                  env:
+                    FLYWAY_EMAIL: $(FLYWAY_EMAIL)
+                    FLYWAY_TOKEN: $(FLYWAY_TOKEN)
+                    DB_USERNAME: $(DB_USERNAME)
+                    DB_PASSWORD: $(DB_PASSWORD)
+                - publish: reports
+                  artifact: test-reports
+                  displayName: Publish reports
+                  condition: always()
+                  continueOnError: true
+
+  - stage: Prod
+    displayName: Deploy to Prod (sandbox)
+    dependsOn: Test
+    condition: succeeded()
+    jobs:
+      - deployment: Prod
+        environment: prod
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - powershell: |
+                    & .\Scripts\Flyway_DownloadAndInstallCLI.ps1
+                    Write-Host "##vso[task.prependpath]C:\FlywayCLI"
+                  displayName: Install Flyway CLI (skipped if already installed)
+                - powershell: .\Scripts\flyway-ci.ps1 check -changes -drift -dryrun -environment=Prod "-reportFilename=reports/Prod-check.html"
+                  displayName: Pre-deployment report (changes, drift, SQL to run)
+                  env:
+                    FLYWAY_EMAIL: $(FLYWAY_EMAIL)
+                    FLYWAY_TOKEN: $(FLYWAY_TOKEN)
+                    DB_USERNAME: $(DB_USERNAME)
+                    DB_PASSWORD: $(DB_PASSWORD)
+                - powershell: .\Scripts\flyway-ci.ps1 info migrate info -environment=Prod "-migrate.saveSnapshot=true"
+                  displayName: Deploy
+                  env:
+                    FLYWAY_EMAIL: $(FLYWAY_EMAIL)
+                    FLYWAY_TOKEN: $(FLYWAY_TOKEN)
+                    DB_USERNAME: $(DB_USERNAME)
+                    DB_PASSWORD: $(DB_PASSWORD)
+                - publish: reports
+                  artifact: prod-reports
+                  displayName: Publish reports
+                  condition: always()
+                  continueOnError: true

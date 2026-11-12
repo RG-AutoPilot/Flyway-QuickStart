@@ -33,7 +33,7 @@ Set it up in four steps:
 
 Good habits: never paste production data, connection strings or secrets into a prompt (if you do, rotate the secret). Ask which file an answer came from. Test anything marked "Not from Redgate docs" on a sandbox first. The assistant never connects to your databases or deploys anything.
 
-Sandbox setup repo: if you are in the Flyway Setup Sandbox repository, this library sits beside a setup skill (`.claude/skills/flyway-setup/SKILL.md`) and a decision log (`Documentation/project-profile.md`). Start with the skill: it runs a 12-step guided setup on your own sandbox databases and uses this library for detail. In that repo the assistant may use the Flyway MCP server and read-only CLI checks against the `development` and `shadow` environments only; everything else in this file still applies. The repo is for building and testing Flyway, not for real databases: for real use, rebuild the project with your DBAs using design mode (file 28).
+Sandbox setup repo: if you are in the Flyway Setup Sandbox repository, this library sits beside a setup skill (`.claude/skills/flyway-setup/SKILL.md`) and a decision log (`Documentation/project-profile.md`). Start with the skill: it runs a guided setup on structure-only copies of your own SQL Server or Oracle database, then has you try deploy, check, drift and undo, and uses this library for detail. In that repo the assistant may run the Flyway CLI (or the Flyway MCP server) against the `development` and `shadow` environments only; everything else in this file still applies. The repo is for building and testing Flyway, not for real databases: for real use, rebuild the project with your DBAs using design mode (file 28).
 
 ## 2. What the assistant does with the library
 
