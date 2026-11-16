@@ -8,7 +8,7 @@ GitLab.com hosts the project; the runner (the program that runs the jobs) runs o
 
 1. **A project:** on GitLab.com, create a blank **private** project and untick "Initialize repository with a README". Your assistant commits this project, points it at the new one, and gives you the push command.
 2. **Point it at the pipeline:** **Settings > CI/CD > General pipelines > CI/CD configuration file**: `pipelines/gitlab/flyway.gitlab-ci.yml`. Save.
-3. **Secrets:** **Settings > CI/CD > Variables > Add variable**. Add `FLYWAY_EMAIL` and `FLYWAY_TOKEN` ([create a personal access token](https://documentation.red-gate.com/flyway/flyway-cli-and-api/tutorials/tutorial-personal-access-tokens)), with the token **Masked**. For a SQL login, also add `TARGET_DATABASE_USERNAME` and `TARGET_DATABASE_PASSWORD` (masked).
+3. **Secrets:** **Settings > CI/CD > Variables > Add variable**. Add `FLYWAY_EMAIL` and `FLYWAY_TOKEN`, with the token **Masked**. For the token, sign in on [Redgate's personal access token page](https://identityprovider.red-gate.com/personaltokens?returnUrl=https%3A%2F%2Fportal.red-gate.com%2Fproducts) with the account that holds your Enterprise licence, create one and copy it straight away: it's shown only once ([Redgate's guide](https://documentation.red-gate.com/flyway/flyway-cli-and-api/tutorials/tutorial-personal-access-tokens)). For a SQL login, also add `TARGET_DATABASE_USERNAME` and `TARGET_DATABASE_PASSWORD` (masked).
 4. **A runner:**
    1. **Settings > CI/CD > Runners > New project runner**. Tick **Run untagged jobs**, then **Create runner**.
    2. Download `gitlab-runner` for Windows ([GitLab's guide](https://docs.gitlab.com/runner/install/windows/)) into a folder outside this project, for example `C:\GitLab-Runner`.

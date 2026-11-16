@@ -7,8 +7,9 @@
    Start from EITHER
      @SourceDatabase    your database, already on this server
      @SourceBackupFile  a backup (.bak) of your database, in a folder on this
-                        server. It is restored as a temporary database, its
-                        structure is copied, then it is dropped.
+                        server. A file name alone means the server's default
+                        backup folder. It is restored as a temporary database,
+                        its structure is copied, then it is dropped.
 
    What it does:
      1. Makes a dataless backup of your database: a copy of its structure
@@ -28,7 +29,7 @@
 SET NOCOUNT ON;
 
 DECLARE @SourceDatabase     sysname       = N'northwind_dev';  -- your database on this server, OR leave empty and use the next line
-DECLARE @SourceBackupFile   nvarchar(400) = N'';  -- e.g. N'D:\Backups\Sales.bak', as this server sees it
+DECLARE @SourceBackupFile   nvarchar(400) = N'';  -- the exact file name, e.g. N'AdventureWorks2016.bak' (in the default backup folder) or N'D:\Backups\Sales.bak', as this server sees it
 DECLARE @Prefix             sysname       = N'NorthwindFW';                    -- 'Sales' gives Sales_Dev, Sales_Test ...
 DECLARE @BaselineBackupFile nvarchar(400) = N'NorthwindFW_FlywayBaseline.bak'; -- a file name alone goes in the server's default backup folder
 
@@ -40,6 +41,8 @@ DECLARE @TempSource   sysname       = @Prefix + N'_FlywayTempSource',
         @BaselinePath nvarchar(400),
         @Sql          nvarchar(max),
         @Move         nvarchar(max),
+        @Similar      nvarchar(max) = N'',
+        @Msg          nvarchar(2048),
         @Db           sysname,
         @FromBaseline bit,
         @i            int           = 1,
@@ -55,7 +58,16 @@ IF @Prefix LIKE N'<%' OR @BaselineBackupFile LIKE N'<%'
 IF (CASE WHEN @SourceDatabase = N'' THEN 0 ELSE 1 END) + (CASE WHEN @SourceBackupFile = N'' THEN 0 ELSE 1 END) <> 1
     THROW 50001, N'Set either @SourceDatabase or @SourceBackupFile (one of them, not both).', 1;
 IF @SourceDatabase <> N'' AND DB_ID(@SourceDatabase) IS NULL
-    THROW 50002, N'@SourceDatabase was not found on this server. Check the name, or use @SourceBackupFile instead.', 1;
+BEGIN
+    -- Suggest close matches: sample databases carry a year, such as AdventureWorks2022
+    SELECT @Similar = @Similar + CASE WHEN @Similar = N'' THEN N'' ELSE N', ' END + name
+    FROM sys.databases
+    WHERE database_id > 4 AND name LIKE N'%' + @SourceDatabase + N'%' AND name NOT LIKE @Prefix + N'[_]%';
+    SET @Msg = LEFT(N'@SourceDatabase was not found on this server. Use the exact name shown in Object Explorer'
+             + CASE WHEN @Similar <> N'' THEN N'. Similar names here: ' + @Similar ELSE N', or use @SourceBackupFile instead' END
+             + N'.', 2000);
+    THROW 50002, @Msg, 1;
+END;
 IF ISNULL(IS_SRVROLEMEMBER('sysadmin'), 0) = 0
     THROW 50003, N'This script needs sysadmin, because DBCC CLONEDATABASE does. Use a server where you are an administrator (SQL Server Developer Edition on your own machine is ideal), or ask a DBA to run it.', 1;
 
@@ -87,7 +99,10 @@ BEGIN
         BEGIN CATCH
             IF ERROR_NUMBER() <> 213
             BEGIN
-                PRINT N'Stopped: SQL Server could not read @SourceBackupFile. The file must be in a folder on the SQL Server machine itself (not your own PC, unless that is the server), and the SQL Server service account must be able to read it. The server''s default backup folder always works.';
+                PRINT N'Stopped: SQL Server could not read @SourceBackupFile (the error below shows the full path it tried).';
+                PRINT N'- Operating system error 2: no file by that name there. Check the exact file name: sample backups carry a year, such as AdventureWorks2022.bak.';
+                PRINT N'- Operating system error 5: SQL Server isn''t allowed to read that folder. Your Downloads folder is the usual culprit.';
+                PRINT N'Either way: move the file into the server''s default backup folder and use the file name alone.';
                 THROW;
             END;
             SET @Try += 1;

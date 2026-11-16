@@ -20,7 +20,7 @@ Each folder's `README.md` covers two routes: setting the tool up on this machine
 ## What every pipeline needs
 
 - **A runner or agent:** a Windows machine with the Flyway CLI that can reach your database server. Cloud-hosted runners can't usually reach a server on your network. Running it as yourself, in a terminal window, means Windows sign-in works as it does for you.
-- **Secrets:** `FLYWAY_EMAIL` and `FLYWAY_TOKEN`, your Redgate account email and a [personal access token](https://documentation.red-gate.com/flyway/flyway-cli-and-api/tutorials/tutorial-personal-access-tokens). For a SQL or database login, also `TARGET_DATABASE_USERNAME` and `TARGET_DATABASE_PASSWORD`. These are used for Test and Check. Never put them in a file.
+- **Secrets:** `FLYWAY_EMAIL` and `FLYWAY_TOKEN`, your Redgate account email and a personal access token, created on [Redgate's token page](https://identityprovider.red-gate.com/personaltokens?returnUrl=https%3A%2F%2Fportal.red-gate.com%2Fproducts) with the account that holds your Enterprise licence ([guide](https://documentation.red-gate.com/flyway/flyway-cli-and-api/tutorials/tutorial-personal-access-tokens)). For a SQL or database login, also `TARGET_DATABASE_USERNAME` and `TARGET_DATABASE_PASSWORD`. These are used for Test and Check. Never put them in a file.
 - **The connections** come from `flyway.toml`, so there's nothing else to fill in. If your project's environments have other names, swap `Test` and `Check` in the pipeline file for yours.
 
 Platform notes:

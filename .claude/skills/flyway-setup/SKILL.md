@@ -15,6 +15,8 @@ How it fits together (explain only when it helps):
 
 ## Detect state first
 
+**Right folder?** `AGENTS.md` and `flyway.toml` must be at the top of your working folder. If they're in a subfolder, stop and ask them to open that folder itself in their AI tool and say *start* again. Its instructions and the Flyway MCP server load from there, and every path in this playbook is relative to it.
+
 Read `Documentation/project-profile.md`, the `[environments.*]` in `flyway.toml`, `schema-model/` and `migrations/`.
 - Fresh: go to Welcome.
 - Partway: welcome them back, say in one line what's done and what's next, ask to carry on. If the profile says they started from an existing project, carry on with "If they already have a Flyway project".
@@ -51,7 +53,7 @@ Say you're checking Flyway is installed, then run `flyway --version`.
 - **Says Community, or asks to sign in:** they run `flyway auth -IAgreeToTheEula`. It opens a browser to sign in with the Redgate account that holds their Enterprise licence. Backup as Baseline needs Enterprise (library file 04).
 - **Complains about a setting in `flyway.toml`:** their Flyway is too old. They update it. Don't edit the file.
 
-Suggest Flyway Desktop if they don't have it (https://documentation.red-gate.com/fd/installers-172490864.html). It's needed for SQL logins and handy for trying things in a UI. If everything's fine, just say "Flyway's installed and ready" and move on.
+On Windows, also run the Flyway Desktop lookup from step 9 and note in the profile whether it's installed. If it isn't, say in one line that you'll download it for them when it's useful (it's needed for SQL logins and handy for trying things in a UI), and that they can say *desktop* any time. If everything's fine, just say "Flyway's installed and ready" and move on.
 
 ## 3. About your database (one question per message)
 
@@ -67,6 +69,7 @@ Accept bundled answers and skip anything already answered.
    7. NoSQL: MongoDB or Atlas, Amazon DocumentDB, Cassandra, Couchbase"
    - **1:** carry on.
    - **2:** also read `oracle.md` in this folder and follow it alongside these steps.
+   - **2, 3 or 4:** say in one line that their platform is fully guided here, so they don't need SQL Server.
    - **3 or 4:** also read `postgresql-mysql.md` in this folder and follow it alongside these steps; it replaces parts of steps 3 to 7. On EnterpriseDB Extended Server, say first that Flyway's support there is preview. CockroachDB, Aurora DSQL, SingleStore, TiDB and OceanBase are Foundational only, so treat them as 5 to 7.
    - **5 to 7:** if it isn't clear which product, ask. Then say kindly that this sandbox's guided setup covers SQL Server, Oracle, PostgreSQL and MySQL, and tell them what Flyway offers on theirs, per Redgate's supported databases page (https://documentation.red-gate.com/flyway/getting-started-with-flyway/system-requirements/supported-databases-and-versions; check their version there):
      - **Advanced** (Flyway compares databases and writes the migrations, plus checks and drift): Snowflake and Databricks. Preview: Couchbase. In development: Fabric SQL Database.
@@ -79,10 +82,12 @@ Accept bundled answers and skip anything already answered.
    2. I have a backup file (`.bak`) of it
    3. It's on another server
    4. I'd rather use a sample database"
-   - **1:** ask for its name, calling it the source database, never the dev database. For example: "What's the name of the database to copy from? It's only read. Your dev database will be a new copy of it."
-   - **2:** ask for the full path of the `.bak` as the sandbox server sees it. That means a folder on that server, not their PC, unless their PC is the server. The server's default backup folder always works.
-   - **3:** they back it up the usual way (in SSMS: right-click the database, Tasks, Back Up), or ask their DBA. Then they copy the `.bak` to a folder on the sandbox server and continue as in 2. If the data is sensitive, a DBA can make a dataless backup on the source server instead, following Redgate's guide (https://documentation.red-gate.com/flyway/learn-more-about-flyway/how-to-articles/use-a-sql-server-backup-to-baseline-a-database). The script treats it the same.
-   - **4:** they download a sample `.bak` (AdventureWorks or Chinook), then continue as in 2.
+   - **1:** ask for its exact name, calling it the source database, never the dev database. For example: "What's the exact name of the database to copy from, as SSMS shows it? It's only read. Your dev database will be a new copy of it." Never guess or shorten a name: samples carry a year, such as `AdventureWorks2022`. If the name is wrong, the script lists similar ones.
+   - **2:** ask them to move the `.bak` into the sandbox server's **default backup folder** and tell you its exact file name, copied rather than typed. Then fill in the file name alone. To find the folder in SSMS: right-click the server in Object Explorer, **Properties**, **Database Settings**, then **Backup** under **Database default locations**. It looks like `C:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\Backup`, and Windows asks for administrator permission to copy into it. A full path elsewhere works only if it's on the server (not their PC, unless their PC is the server) and the SQL Server service account can read it. Their Downloads folder almost never qualifies.
+   - **3:** they back it up the usual way (in SSMS: right-click the database, Tasks, Back Up), or ask their DBA. Then they copy the `.bak` to the sandbox server and continue as in 2. If the data is sensitive, a DBA can make a dataless backup on the source server instead, following Redgate's guide (https://documentation.red-gate.com/flyway/learn-more-about-flyway/how-to-articles/use-a-sql-server-backup-to-baseline-a-database). The script treats it the same.
+   - **4:** say you'll start the download of Microsoft's AdventureWorks sample in their browser, then run:
+     `Start-Process https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2016.bak`
+     `AdventureWorks2016.bak` restores on every SQL Server the script supports (2016 SP2 and later). Microsoft's other versions are on https://learn.microsoft.com/en-us/sql/samples/adventureworks-install-configure; their file names all carry a year. Then continue as in 2, with `AdventureWorks2016.bak` as the file name.
 
    It must have real tables. Never create an empty Dev database.
 4. **Size:** "Is it large or complex? For example thousands of objects, several filegroups, or references to other databases or linked servers. (1 yes, 2 no, 3 not sure)" Backup as Baseline handles both; it's built for this. Use the answer to set expectations:
@@ -106,7 +111,8 @@ Tell them you did. Then ask them to open it in SSMS or Azure Data Studio, connec
 
 Success ends with "Done." in the Messages tab. Ask them to say *done*, or paste the error. You don't need the baseline path it prints: step 5 uses the `@BaselineBackupFile` value you filled in. If it fails, start with the simplest cause:
 - **Needs sysadmin:** use a server where they're an administrator, or a DBA runs it.
-- **Can't read the `.bak`:** it must be in a folder on the server that the SQL Server service account can read.
+- **`@SourceDatabase was not found`:** use the exact name; the message lists similar names on the server.
+- **Can't read the `.bak`** ("Cannot open backup device"): operating system error 2 means no file by that name, so check the exact name, year included. Error 5 means SQL Server can't read that folder (usually Downloads). Either way, move the file into the default backup folder and use the file name alone.
 - **"Cannot open backup device" on the baseline:** use a file name alone, or a folder the service account can write to.
 - **Backup from a newer SQL Server version:** they need a sandbox server of the same version or newer.
 - **Encrypted (TDE) backup, or not enough disk space for the temporary restore:** ask a DBA for a dataless backup instead.
@@ -130,8 +136,10 @@ sqlserver.generateWithMove = true
 ```
 A file name alone (the default) works: SQL Server looks for it in its default backup folder, which is where the script saved it. Keep these environment names, because the pipelines use them.
 
-**SQL login:** say no passwords go in project files, and ask: "Do you use the same login for all these databases? (1 yes, 2 no)". Then give these steps, in exactly these words:
-1. Open **Flyway Desktop** and click **Open project**. Choose this folder (the one containing `flyway.toml`).
+**SQL login:** say no passwords go in project files, and ask: "Do you use the same login for all these databases? (1 yes, 2 no)". These steps need Flyway Desktop: if it isn't installed, download it for them first, as in step 9. Then give these steps, in exactly these words:
+1. Open **Flyway Desktop**. On its home screen, under **Open existing project**, click **Open local file** (older versions: **Open project...**). Go to this folder, `<this folder>`, and choose `flyway.toml`.
+
+   Fill in the full path. On Windows, first copy it to their clipboard as in step 9, and add: "The path is on your clipboard: paste it into the **File name** box and press Enter."
 2. **Ignore "Start here".** Click **Environments** in the left-hand menu.
 3. Click **development**, enter the username and password, and save. If they answered 2, repeat for every environment.
 
@@ -179,30 +187,38 @@ Don't walk them through the commands one by one. Say: "If you want to test out t
 - They run the commands themselves.
 - If they ask about one, explain it.
 
-**In the same message, offer Flyway Desktop,** because the page works in it: "Would you like me to open your project in Flyway Desktop, Redgate's app for Flyway? It's already set up and ready. 1 Open it (default) 2 Download and install it first 3 Not now"
-- **Open it (Windows):**
-  1. Find the app through the installed-programs list. This lookup is the one exception to "don't search the machine":
-     ```powershell
-     Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object DisplayName -like 'Flyway Desktop*' | Select-Object -First 1 -ExpandProperty InstallLocation
-     ```
-     The app is `<InstallLocation>\flyway-desktop\Flyway Desktop.exe`.
-  2. Say you're opening it, then start it with the full path of this folder's `flyway.toml` as its argument, which opens the project straight away (from Redgate's community forum, not its docs): `Start-Process "<app>" -ArgumentList '"<this folder>\flyway.toml"'`.
-  3. Some AI tools close programs they start when the command ends. If it doesn't stay open, start it with `Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = '"<app>" "<this folder>\flyway.toml"' }`, or give them the `Start-Process` line to run.
-- **Open it (not found, macOS or Linux, or it opens without the project):** they open Flyway Desktop, click **Open project** and choose this folder. Ignore "Start here".
+**In the same message, offer Flyway Desktop,** because the page works in it. First find out whether it's installed: on Windows, run the lookup below; on macOS or Linux, ask. Then offer the right thing:
+- **Installed:** "Would you like me to start Flyway Desktop, Redgate's app for Flyway, and help you open your project in it? The project is already set up for it. 1 Yes (default) 2 Not now"
+- **Not installed:** "Flyway Desktop, Redgate's app for Flyway, isn't installed yet. Shall I download it for you? Your project is already set up for it. 1 Yes, start the download (default) 2 Not now". Put the installers page in the message too, so they have the link whatever they choose: https://documentation.red-gate.com/fd/installers-172490864.html
+
+**The lookup (Windows).** It reads the installed-programs list, the one exception to "don't search the machine":
+```powershell
+Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object DisplayName -like 'Flyway Desktop*' | Select-Object -First 1 -ExpandProperty InstallLocation
+```
+No output means it isn't installed. Otherwise the app is `<InstallLocation>\flyway-desktop\Flyway Desktop.exe`.
+
+- **Start the download:** say you're starting it in their browser, then run:
+  - Windows: `Start-Process https://download.red-gate.com/Flyway_Desktop.exe`
+  - macOS: `open https://download.red-gate.com/FlywayDesktopDarwinArm64.dmg` (Apple silicon) or `open https://download.red-gate.com/FlywayDesktopDarwinX64.dmg` (Intel)
+  - Linux: give them the installers page.
+
+  They run the installer from their Downloads folder and sign in with their Redgate account. Never run the installer yourself. When they say *done*, run the lookup again and open it.
+- **Open it:** Flyway Desktop ignores a project path given on its command line, so it can't load the project by itself. Get them as close as you can:
+  1. Say you're starting Flyway Desktop and copying the path of this project's `flyway.toml` to their clipboard. On Windows, run `Set-Clipboard -Value '<this folder>\flyway.toml'`, then `Start-Process "<app>"`. Some AI tools close programs they start when the command ends. If it doesn't stay open, start it with `Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = '"<app>"' }`, or ask them to start it from the Start menu. On macOS or Linux, they start it themselves.
+  2. Tell them how to open the project, printing the full paths: "On Flyway Desktop's home screen, under **Open existing project**, click **Open local file** (older versions: **Open project...**). Go to this folder, `<this folder>`, and choose `flyway.toml`." On Windows, add: "The full path is on your clipboard, so you can paste it into the **File name** box and press Enter." If Desktop asks them to sign in, they use their Redgate account. If a page says "Start here", they can ignore it.
+  3. Ask them to say *done* once the project is open. Never say it's loaded until they confirm.
 - **Once it's open:** **Schema model** compares Dev with `schema-model/` and **Generate migrations** writes migrations, the same work you did in step 8. Desktop and the command line share this project's files.
-- **Download and install it first:** say you'll start the download in their browser, then open it:
-  - Windows: `Start-Process https://download.red-gate.com/Flyway_Desktop.exe`.
-  - macOS: `open https://download.red-gate.com/FlywayDesktopDarwinArm64.dmg` (Apple silicon) or `open https://download.red-gate.com/FlywayDesktopDarwinX64.dmg` (Intel).
-  - Linux: https://documentation.red-gate.com/fd/installers-172490864.html.
+- **Not now:** they can say *desktop* any time, and the link is in your message.
 
-  They run the installer and sign in with their Redgate account. Never run the installer yourself. When they say *done*, carry on as "Open it".
-- **Not now:** they can say *desktop* any time.
-
-When they say *done* with the workflows, note what they tried in the profile, celebrate, then offer the pipeline.
+Once Desktop is sorted, end with: "Work through the workflow page at your own pace, in Flyway Desktop or in PowerShell, and ask me about anything along the way. When you're ready, reply:
+1. Done, and tell me which ones you tried: deploy, check, drift, undo (default)
+2. Set up a pipeline now, and come back to the workflows later"
+- **1:** note what they tried in the profile, celebrate, then offer the pipeline (step 10).
+- **2:** note in the profile that they skipped ahead, then go to step 10. They've already said yes, so ask its first question without *Not now*.
 
 ## 10. Pipeline (optional)
 
-Offer this once step 8 works and they've finished with step 9. Coming from "If they already have a Flyway project", start at the first question without *Not now*. Work in their project folder: the pipeline files go there, with `Test` and `Check` swapped for their environment names. Everything for it is in `pipelines/`: read `pipelines/README.md`, then the chosen tool's `README.md`, and follow it. The pipeline is deliberately basic. It builds a report on the **Check** database (changes, drift, code review and the SQL to run), then deploys to one downstream environment, **Test**. Prod stays manual.
+Offer this once step 8 works and they've finished with step 9, or straight away if they chose to skip ahead to it there. Coming from "If they already have a Flyway project", start at the first question without *Not now*. Work in their project folder: the pipeline files go there, with `Test` and `Check` swapped for their environment names. Everything for it is in `pipelines/`: read `pipelines/README.md`, then the chosen tool's `README.md`, and follow it. The pipeline is deliberately basic. It builds a report on the **Check** database (changes, drift, code review and the SQL to run), then deploys to one downstream environment, **Test**. Prod stays manual.
 
 1. **Offer:** "Would you like help with a pipeline, so each new migration gets a report and is deployed to Test automatically?
    1. Yes, on this machine. I can set the whole thing up for you, out of the box: the pipeline, the repo, and step-by-step help installing the tool (default)
@@ -231,6 +247,7 @@ Offer this once step 8 works and they've finished with step 9. Coming from "If t
      - They create an empty private repo and send you its URL.
      - You run `git remote rename origin sandbox` and `git remote add origin <url>`.
      - They run `git push -u origin main`, which may ask them to sign in.
+   - **The Redgate token:** when you reach the secrets step, say you'll open Redgate's personal access token page in their browser, then run `Start-Process 'https://identityprovider.red-gate.com/personaltokens?returnUrl=https%3A%2F%2Fportal.red-gate.com%2Fproducts'` (macOS: `open`, Linux: `xdg-open`). Put the link in your message too. They sign in with the Redgate account that holds their Enterprise licence, create a token and copy it straight away, because it's shown only once. Then they paste it into the `FLYWAY_TOKEN` secret themselves. Never ask to see it.
    - **After 1:** walk them through the README's "Set it up on this machine", one step per message. They run the installers and registration commands and enter every secret themselves. Never run an installer yourself, and never see a token. The runner or agent runs in a terminal window as them, so Windows sign-in and Flyway work as they do now.
    - **After 2:** walk them through the README's "Use your team's…" section, one step per message. If someone else runs the tool, offer to write a short note for them listing the runner, secrets and pipeline path it needs.
 5. **First run:** they start it by hand. Nothing is pending, so it only proves the runner, licence, connections and report; they open the report from the run's artifacts. Then the real thing:
@@ -281,7 +298,7 @@ Use a baseline script instead and say so in one line: "Your platform can't back 
 
 ## Commands the user can type
 
-`done`, `where am I`, `next`, `back`, `skip`, `desktop` (open the project in Flyway Desktop), `pipeline` (set up a pipeline), `problem` (switch to the troubleshoot skill), `more` (fuller detail), `end`.
+`done`, `where am I`, `next`, `back`, `skip`, `desktop` (open the project in Flyway Desktop, downloading it first if needed), `pipeline` (set up a pipeline), `problem` (switch to the troubleshoot skill), `more` (fuller detail), `end`.
 
 ## Where to look for detail
 

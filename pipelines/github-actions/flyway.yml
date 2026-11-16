@@ -9,7 +9,8 @@
 #
 # Repository secrets (Settings > Secrets and variables > Actions):
 #   FLYWAY_EMAIL, FLYWAY_TOKEN    your Redgate account email and a personal access token:
-#     https://documentation.red-gate.com/flyway/flyway-cli-and-api/tutorials/tutorial-personal-access-tokens
+#     create the token at https://identityprovider.red-gate.com/personaltokens?returnUrl=https%3A%2F%2Fportal.red-gate.com%2Fproducts
+#     guide: https://documentation.red-gate.com/flyway/flyway-cli-and-api/tutorials/tutorial-personal-access-tokens
 #   TARGET_DATABASE_USERNAME, TARGET_DATABASE_PASSWORD    only for a SQL or database login
 #     (left unset, Windows sign-in is used)
 # Optional: add required reviewers to the "test" environment (Settings > Environments) so the

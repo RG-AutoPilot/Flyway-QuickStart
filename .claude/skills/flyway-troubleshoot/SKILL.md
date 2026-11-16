@@ -24,7 +24,7 @@ Find the cause and get the user unstuck, or hand them a short, safe-to-share rep
    - wrong folder
    - old Flyway, or not signed in
    - an unquoted dotted argument in PowerShell
-   - a typo in a database name
+   - a database or file name that's slightly off: sample names carry a year, such as `AdventureWorks2022`
    - a login that can't create or restore databases
    - a backup path the SQL Server can't read: `backupFilePath` and `@SourceBackupFile` are paths on the server, not on the user's PC, and the SQL Server service account must be able to read them
    - a login that can't restore databases (Flyway restores the baseline into shadow, Check and Build)

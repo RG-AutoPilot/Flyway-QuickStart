@@ -6,7 +6,7 @@ For TeamCity, Octopus Deploy, Bamboo, Bitbucket Pipelines, Harness or anything e
 
 1. **Agent or runner:** a Windows machine that can reach the database server, with the Flyway CLI on its `PATH`. With Windows sign-in, its account needs access to the databases.
 2. **Get the code:** the job checks out this project's repo. If the pipeline definition lives in a separate repo, check out this project's repo as well, and run the script from its folder.
-3. **Secrets as environment variables:** `FLYWAY_EMAIL` and `FLYWAY_TOKEN` ([create a personal access token](https://documentation.red-gate.com/flyway/flyway-cli-and-api/tutorials/tutorial-personal-access-tokens)). For a SQL login, also add `TARGET_DATABASE_USERNAME` and `TARGET_DATABASE_PASSWORD`. Mark them secret or masked.
+3. **Secrets as environment variables:** `FLYWAY_EMAIL` and `FLYWAY_TOKEN`. For the token, sign in on [Redgate's personal access token page](https://identityprovider.red-gate.com/personaltokens?returnUrl=https%3A%2F%2Fportal.red-gate.com%2Fproducts) with the account that holds your Enterprise licence, create one and copy it straight away: it's shown only once ([Redgate's guide](https://documentation.red-gate.com/flyway/flyway-cli-and-api/tutorials/tutorial-personal-access-tokens)). For a SQL login, also add `TARGET_DATABASE_USERNAME` and `TARGET_DATABASE_PASSWORD`. Mark them secret or masked.
 4. **One step:** a PowerShell or command-line step, run from the project folder:
    ```
    powershell -ExecutionPolicy Bypass -File pipelines/other/flyway-pipeline.ps1
