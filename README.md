@@ -11,6 +11,8 @@ In about an hour you'll have a working Flyway project and a migration that Flywa
 1. Clone this repo and open the folder in your AI assistant (GitHub Copilot, Claude Code, Cursor, Gemini CLI, Codex and others).
 2. Type **start** in the assistant's chat, not in a terminal. (In PowerShell, `start` is a different command. If you see a `FilePath:` prompt, press Ctrl+C.) For a command-line assistant, launch it first (for example `claude`, `gemini` or `codex`), then type **start** at its prompt.
 
+Already have a Flyway Enterprise project? Say so at the start, and the assistant goes straight to setting up a pipeline for it.
+
 Your assistant asks one question at a time and writes the configuration. It gives you anything you need to run yourself (a SQL script and a few Flyway commands) and explains each one first. If it doesn't pick up the instructions on its own, say **"Read AGENTS.md and start."**
 
 ## You'll need
@@ -26,8 +28,8 @@ Your assistant asks one question at a time and writes the configuration. It give
 2. **You run one script.** It makes a [dataless backup](https://documentation.red-gate.com/flyway/learn-more-about-flyway/how-to-articles/use-a-sql-server-backup-to-baseline-a-database) of your database (structure only, no data) as the baseline, and restores it as Dev, Test and Prod. It also creates scratch databases for Flyway.
 3. **The assistant connects Flyway**, captures your schema and proves Flyway can restore your baseline. This is Backup as Baseline on SQL Server, or a Data Pump dump on Oracle (preview). On PostgreSQL, MySQL and Azure SQL, Flyway writes the baseline as a script instead.
 4. **You change Dev, and Flyway generates** the migration and its undo script.
-5. **You run the workflows:** a pre-deployment report, deploy, undo, catching drift, and promoting to Prod.
-6. **Optional:** a GitHub Actions or Azure DevOps pipeline.
+5. **You try the workflows** with Redgate's [POC workflow](https://documentation.red-gate.com/fd/flyway-poc-worfkflow-325421946.html): a sequence of commands to deploy, undo, cherry-pick and check for drift. The assistant opens your project in Flyway Desktop, or downloads Desktop for you first.
+6. **Optional:** a basic pipeline that builds a report and deploys each new migration to Test. It can use GitHub Actions, Azure DevOps, Jenkins, GitLab or your team's own tool. The assistant can set the whole thing up on your machine, or help you plug it into the tools your team already has.
 
 The assistant never runs SQL against your databases, never deploys to Test or Prod for you, and never asks for passwords. Progress is saved in `Documentation/project-profile.md`.
 
@@ -39,9 +41,9 @@ The assistant never runs SQL against your databases, never deploys to Test or Pr
 | `.claude/skills/` | The guided setup and troubleshooting playbooks |
 | `flyway.toml` | Flyway project settings. Your environments are added during setup |
 | `schema-model/`, `migrations/` | Empty until the setup fills them |
-| `Scripts/` | The create-databases scripts (SQL Server, PostgreSQL, MySQL), the Flyway CLI installer and a pipeline helper |
+| `Scripts/` | The create-databases scripts (SQL Server, PostgreSQL, MySQL) and the Flyway CLI installer |
 | `Rules/`, `sqlfluff.cfg`, `Filter.scpf` | Code-review rules and the comparison filter |
-| `.github/workflows/flyway.yml`, `AzureDevOps/flyway-pipeline.yml` | Optional pipelines |
+| `pipelines/` | Optional pipelines, one folder per tool: GitHub Actions and Azure DevOps (based on Flyway AutoPilot), Jenkins, GitLab and a script for any other tool |
 | `Documentation/` | The progress file and a Flyway reference library for your assistant |
 
 ## After the sandbox

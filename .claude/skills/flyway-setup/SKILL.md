@@ -17,21 +17,31 @@ How it fits together (explain only when it helps):
 
 Read `Documentation/project-profile.md`, the `[environments.*]` in `flyway.toml`, `schema-model/` and `migrations/`.
 - Fresh: go to Welcome.
-- Partway: welcome them back, say in one line what's done and what's next, ask to carry on.
+- Partway: welcome them back, say in one line what's done and what's next, ask to carry on. If the profile says they started from an existing project, carry on with "If they already have a Flyway project".
 - Invoked again mid-conversation: continue from the last unanswered question. Don't greet again.
 
 Never call a step done because a file exists. At the end of each phase, update `project-profile.md`: edit rows in place, record true facts only, no secrets.
 
 **PowerShell:** wrap every Flyway argument that contains a dot in double quotes (`"-diff.source=development"`), or Windows PowerShell splits it. Run commands from this project folder.
 
+**When they run something,** tell them first what success looks like, so a plain *done* is enough. Then check for yourself where you can: read what it wrote (every report has a `.json` file of the same name next to its `.html`), or run your own read-only command against development or shadow. Ask them to paste output only if it shows an error or doesn't match what you said they'd see.
+
+**Reports open themselves.** End any command you give them that writes a report with `; Invoke-Item <report>`, so it opens in their default browser as soon as Flyway finishes. On macOS use `; open <report>`, and on Linux `; xdg-open <report>`. Afterwards, read its `.json` and walk them through what it found.
+
 ## 1. Welcome
 
 Short and warm. Cover:
 - We'll set up Flyway on a copy of **your own database's structure** (no data), on a server you control. Nothing touches your real databases.
-- By the end, you'll have a Flyway project and a migration Flyway wrote for you. You'll also have deployed it, checked it, caught drift and rolled it back yourself. A pipeline is an optional extra.
-- Progress is saved, so you can stop any time.
+- By the end, you'll have a Flyway project and a migration Flyway wrote for you, ready for you to try deploying, checking, drift and undo yourself. A pipeline is an optional extra.
+- Progress is saved, so you can stop any time, and questions are welcome at any point.
 
-Ask: "Any questions before we start, or ready to go? (Ask away, or say *ready*.)" Don't mention pipelines again until the end.
+Ask: "Do you already have a Flyway Enterprise project set up?
+1. No, let's set one up (default)
+2. Yes, take me straight to setting up a pipeline for it
+3. Yes, but I'd still like to try the sandbox"
+
+- **1 or 3:** carry on. Don't mention pipelines again until the end.
+- **2:** check Flyway as below, then go to "If they already have a Flyway project".
 
 ## 2. Check Flyway (quietly)
 
@@ -94,7 +104,7 @@ Tell them you did. Then ask them to open it in SSMS or Azure Data Studio, connec
 - Starting from a `.bak` with data, it restores that temporarily, copies the structure, then drops it.
 - It never changes their database or backup file, and never overwrites an existing database.
 
-Ask them to say *done* and paste the baseline path it prints, or the error. If it fails, start with the simplest cause:
+Success ends with "Done." in the Messages tab. Ask them to say *done*, or paste the error. You don't need the baseline path it prints: step 5 uses the `@BaselineBackupFile` value you filled in. If it fails, start with the simplest cause:
 - **Needs sysadmin:** use a server where they're an administrator, or a DBA runs it.
 - **Can't read the `.bak`:** it must be in a folder on the server that the SQL Server service account can read.
 - **"Cannot open backup device" on the baseline:** use a file name alone, or a folder the service account can write to.
@@ -114,11 +124,11 @@ Say: "I'll add your databases to `flyway.toml` so Flyway knows where they are." 
 Add this under each of shadow, Check and Build. Use single quotes so Windows paths need no escaping:
 ```toml
 [environments.shadow.resolvers.backup]
-backupFilePath = '<the baseline path the script printed>'
+backupFilePath = '<the @BaselineBackupFile value>'
 backupVersion = "001"
 sqlserver.generateWithMove = true
 ```
-Keep these environment names, because the pipelines use them.
+A file name alone (the default) works: SQL Server looks for it in its default backup folder, which is where the script saved it. Keep these environment names, because the pipelines use them.
 
 **SQL login:** say no passwords go in project files, and ask: "Do you use the same login for all these databases? (1 yes, 2 no)". Then give these steps, in exactly these words:
 1. Open **Flyway Desktop** and click **Open project**. Choose this folder (the one containing `flyway.toml`).
@@ -146,7 +156,7 @@ Explain in one line: "Your baseline backup is the starting point, so Flyway only
    flyway baseline -environment=Test -baselineVersion=001
    flyway baseline -environment=Prod -baselineVersion=001
    ```
-   When they say *done*, carry on.
+   Success says "Successfully baselined schema with version: 001" for each. When they say *done*, carry on.
 
 ## 8. Your first migration
 
@@ -159,53 +169,104 @@ Ask them to make one small, harmless change in **Dev**, such as adding a nullabl
    If `migrations/` has no `V` scripts yet, add `"-generate.version=002"` so it lands above the baseline (001).
 3. **Show** the new `V` and `U` files and explain each in a sentence: "Flyway wrote these, not us."
 4. **Self-check:** run `flyway diff "-diff.source=schemaModel" "-diff.target=migrations" "-diff.buildEnvironment=shadow"`. It should find no differences. That proves the baseline plus the migration rebuild Dev's structure. It shows the script runs, not that it's safe at production volume.
-5. **Review in Flyway Desktop (optional).** Ask: "Would you like to see this in Flyway Desktop, Redgate's app for Flyway? 1 Open it in Flyway Desktop (default), 2 Install Flyway Desktop first, 3 Not now."
-   - **2:** they download and install it from https://documentation.red-gate.com/fd/installers-172490864.html, then open it and sign in with their Redgate account. Never run the installer yourself. When they say *installed*, carry on as 1.
-   - **1:** give these steps: open Flyway Desktop, click **Open project** and choose this folder (the one containing `flyway.toml`). Ignore "Start here". In the left-hand menu:
-     - **Schema model** compares Dev with the schema model. It should show no new changes, because the change is already captured.
-     - **Generate migrations** should show nothing left to generate, because V002 already covers the change. Opening it may rebuild Shadow first; that's expected, because Shadow is scratch.
-
-     Desktop and the command line share this project's files, so they can switch between them at any time. Ask them to say *back* when they've finished looking.
-   - **3:** carry on.
 
 If something fails, follow the troubleshoot skill. Common causes: invalid objects, or objects that depend on another database or a filtered object.
 
 ## 9. Try the workflows yourself
 
-This is the heart of the proof of concept. The user runs each command in PowerShell in this folder (or the terminal Flyway Desktop opens, or Desktop's UI). Go one at a time: say what it does, they run it and paste the summary, and you explain the result.
+Don't walk them through the commands one by one. Say: "If you want to test out the workflows, here is a sequence of commands you can test out: https://documentation.red-gate.com/fd/flyway-poc-worfkflow-325421946.html"
+- Add one line on what fits their project: the target here is `Test`, where the page uses `test`, and the `target` and `cherryPick` versions are their own, such as `002`.
+- They run the commands themselves.
+- If they ask about one, explain it.
 
-Every command that writes a report ends with `; Invoke-Item <report>`, so the report opens in their default browser as soon as Flyway finishes. On macOS use `; open <report>`, and on Linux `; xdg-open <report>`. Do the same for any other report command you give them.
-1. **What's pending:** `flyway info -environment=Test`
-2. **Pre-deployment report:** `flyway check -changes -drift -code -dryrun -environment=Test "-reportFilename=reports/Test-check.html"; Invoke-Item reports\Test-check.html`. The report opens in their browser. It shows what will change, code-review findings, drift, and the exact SQL that would run. (The first drift check warns that there's no snapshot yet. That's expected.)
-3. **Deploy:** `flyway migrate -environment=Test "-migrate.saveSnapshot=true"`, then `flyway info -environment=Test`.
-4. **Roll back:** `flyway undo -environment=Test "-undo.saveSnapshot=true"`. `info` now shows the migration as Undone. Then they run step 3 again.
-5. **Catch drift:** they make a manual change in the Test database in SSMS (give them a one-line `ALTER TABLE … ADD`). Then they run `flyway check -drift -environment=Test "-reportFilename=reports/Test-drift.html"; Invoke-Item reports\Test-drift.html`, and the report shows the change. Then they remove the change.
-6. **Promote:** the report from step 2 for Prod: `flyway check -changes -drift -code -dryrun -environment=Prod "-reportFilename=reports/Prod-check.html"; Invoke-Item reports\Prod-check.html`. Then `flyway migrate -environment=Prod "-migrate.saveSnapshot=true"`.
+**In the same message, offer Flyway Desktop,** because the page works in it: "Would you like me to open your project in Flyway Desktop, Redgate's app for Flyway? It's already set up and ready. 1 Open it (default) 2 Download and install it first 3 Not now"
+- **Open it (Windows):**
+  1. Find the app through the installed-programs list. This lookup is the one exception to "don't search the machine":
+     ```powershell
+     Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object DisplayName -like 'Flyway Desktop*' | Select-Object -First 1 -ExpandProperty InstallLocation
+     ```
+     The app is `<InstallLocation>\flyway-desktop\Flyway Desktop.exe`.
+  2. Say you're opening it, then start it with the full path of this folder's `flyway.toml` as its argument, which opens the project straight away (from Redgate's community forum, not its docs): `Start-Process "<app>" -ArgumentList '"<this folder>\flyway.toml"'`.
+  3. Some AI tools close programs they start when the command ends. If it doesn't stay open, start it with `Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = '"<app>" "<this folder>\flyway.toml"' }`, or give them the `Start-Process` line to run.
+- **Open it (not found, macOS or Linux, or it opens without the project):** they open Flyway Desktop, click **Open project** and choose this folder. Ignore "Start here".
+- **Once it's open:** **Schema model** compares Dev with `schema-model/` and **Generate migrations** writes migrations, the same work you did in step 8. Desktop and the command line share this project's files.
+- **Download and install it first:** say you'll start the download in their browser, then open it:
+  - Windows: `Start-Process https://download.red-gate.com/Flyway_Desktop.exe`.
+  - macOS: `open https://download.red-gate.com/FlywayDesktopDarwinArm64.dmg` (Apple silicon) or `open https://download.red-gate.com/FlywayDesktopDarwinX64.dmg` (Intel).
+  - Linux: https://documentation.red-gate.com/fd/installers-172490864.html.
 
-Optional, if they want more: make two further changes, generate a migration for each, and deploy only one with `"-cherryPick=<version>"`, or stop at a version with `"-target=<version>"`.
+  They run the installer and sign in with their Redgate account. Never run the installer yourself. When they say *done*, carry on as "Open it".
+- **Not now:** they can say *desktop* any time.
 
-Celebrate properly. Then offer the pipeline.
+When they say *done* with the workflows, note what they tried in the profile, celebrate, then offer the pipeline.
 
 ## 10. Pipeline (optional)
 
-Only start this once steps 6 to 9 work. Ask: "Would you like to automate this in a pipeline? 1 GitHub Actions, 2 Azure DevOps, 3 not now." If 3, go to the wrap-up.
+Offer this once step 8 works and they've finished with step 9. Coming from "If they already have a Flyway project", start at the first question without *Not now*. Work in their project folder: the pipeline files go there, with `Test` and `Check` swapped for their environment names. Everything for it is in `pipelines/`: read `pipelines/README.md`, then the chosen tool's `README.md`, and follow it. The pipeline is deliberately basic. It builds a report on the **Check** database (changes, drift, code review and the SQL to run), then deploys to one downstream environment, **Test**. Prod stays manual.
 
-The pipeline reads everything from `flyway.toml`, so there's nothing to edit in it. Explain in plain words:
-- **Pull request** that changes `migrations/`: restores Build from the baseline, applies every migration, then runs code review and a change report against Test. Nothing is deployed.
-- **Merge to `main`:** the same, then a report and deployment to Test, then Prod. Prod waits for approval if they add one.
+1. **Offer:** "Would you like help with a pipeline, so each new migration gets a report and is deployed to Test automatically?
+   1. Yes, on this machine. I can set the whole thing up for you, out of the box: the pipeline, the repo, and step-by-step help installing the tool (default)
+   2. Yes, with the CI/CD tool my team already uses
+   3. Not now"
 
-Files: `.github/workflows/flyway.yml` or `AzureDevOps/flyway-pipeline.yml`. The setup steps are listed at the top of each file. Walk them through those one at a time:
-1. Push this folder to a GitHub repo, or to Azure Repos.
-2. A self-hosted **Windows** runner (GitHub) or agent (Azure DevOps) on a machine that can reach the database server. With Windows authentication, the runner's service account needs access to the databases and permission to restore the baseline.
-3. Secrets `FLYWAY_EMAIL` and `FLYWAY_TOKEN`. The token is a Redgate personal access token; they create and paste it themselves, and you never see it: https://documentation.red-gate.com/flyway/flyway-cli-and-api/tutorials/tutorial-personal-access-tokens. Add `DB_USERNAME` and `DB_PASSWORD` only for SQL logins.
-4. Environments `test` and `prod`, with an approval on `prod`.
-5. First run: open a pull request with a new migration, and look at the report before merging.
+   If 3, go to the wrap-up.
+2. **Tool:**
+   - **After 1:** "Which shall we set up? 1 GitHub Actions: code on GitHub, runner on this machine (default) 2 Azure DevOps: a free online organisation, agent on this machine 3 Jenkins: everything on this machine, no online account 4 GitLab: GitLab.com, runner on this machine"
+   - **After 2:** "Which tool does your team use? 1 GitHub Actions 2 Azure DevOps 3 Jenkins 4 GitLab 5 Something else (name it)". Option 5 uses `pipelines/other/`.
+3. **Where things live:** the code and the pipeline are sometimes in different places, so ask about each, one at a time.
+   - **Code:** "Where will this project's code live?" Offer only the places the tool supports, with its own as the default:
+     - GitHub Actions: GitHub only, so don't ask.
+     - GitLab: GitLab only, so don't ask.
+     - Azure DevOps: Azure Repos or GitHub.
+     - Jenkins and other tools: any Git server. With Jenkins they can also keep it only on this machine, which is the default after 1.
+   - **Pipeline (after 2 only):** "Will the pipeline file live in this project's repo, or in a separate repo your team keeps pipelines in? 1 This project's repo (default) 2 A separate repo (name it)". The tool's README says what changes for a separate repo.
+
+   Record the tool, the route, and where the code and the pipeline live in the Pipeline row of `project-profile.md`.
+4. **Build it.** Do everything that doesn't need their accounts, secrets or admin rights, and tell them what you did:
+   - **The pipeline file:**
+     - For GitHub Actions, copy `pipelines/github-actions/flyway.yml` to `.github/workflows/flyway.yml`. The other tools' files stay where they are.
+     - Tailor it from `flyway.toml` and the profile. For a SQL login in Jenkins, uncomment the login lines; the other tools pick the login secrets up once they're set. For Oracle, remove `-code` and pass `FLYWAY_CHECK_CONNECT` from a secret. For a separate pipeline repo, a runner label or another agent pool, make the change the README describes.
+   - **A repo of its own:** this folder is a clone of the sandbox repo, so it needs a home of its own, unless the code stays only on this machine. An existing project that already has a remote (`git -C <folder> remote -v`) skips this. Still ask before committing there.
+     - First ask: "May I commit your project so it can be pushed? It includes `flyway.toml` (server and database names, no passwords), the schema model, the migrations and the pipeline. 1 Yes (default) 2 I'll commit it myself".
+     - They create an empty private repo and send you its URL.
+     - You run `git remote rename origin sandbox` and `git remote add origin <url>`.
+     - They run `git push -u origin main`, which may ask them to sign in.
+   - **After 1:** walk them through the README's "Set it up on this machine", one step per message. They run the installers and registration commands and enter every secret themselves. Never run an installer yourself, and never see a token. The runner or agent runs in a terminal window as them, so Windows sign-in and Flyway work as they do now.
+   - **After 2:** walk them through the README's "Use your team's…" section, one step per message. If someone else runs the tool, offer to write a short note for them listing the runner, secrets and pipeline path it needs.
+5. **First run:** they start it by hand. Nothing is pending, so it only proves the runner, licence, connections and report; they open the report from the run's artifacts. Then the real thing:
+   - In the sandbox, they make another small change in Dev, and you capture it and generate the next migration as in step 8. In an existing project, they generate one the way they usually do.
+   - With their OK, you commit it, and they push.
+   - The pipeline builds the report on Check and deploys to Test.
+   - They confirm with `flyway info -environment=Test`.
+
+   Prod stays manual.
+
+If a run fails, follow the troubleshoot skill. The usual causes are:
+- a runner that can't reach the server, or whose account has no access to the databases
+- a missing secret
+- Flyway not on the runner's `PATH`
 
 The baseline backup must be readable by the SQL Server the pipeline connects to. On the same server, that's already the case.
 
 ## 11. Wrap-up
 
 Congratulate them. Summarise what they have in a few lines: a Flyway project on their own database, a baseline backup, the migrations, what they tested and the pipeline. Update `project-profile.md`. Remind them kindly that this was a sandbox. For real use, they build the project with their DBAs and their Redgate SE, taking the baseline from their real production structure. Offer follow-ups: another change, a filter, reference data tables, a QA stage, or the pipeline if they skipped it.
+
+## If they already have a Flyway project
+
+They skip the sandbox and go straight to a pipeline. Say in one line: "Great, we'll set up a pipeline for your project. I'll only read its settings, and change nothing until you agree."
+1. **Where it is:** "What's the full path of the folder that contains your project's `flyway.toml`? If it's only in a remote repo, clone it first." From here on, you may also work in that folder.
+2. **Read it:** read its `flyway.toml`, never `flyway.user.toml`. Note:
+   - the database platform
+   - the environment names, and which ones have a `provisioner`
+   - whether the URLs use Windows sign-in (`integratedSecurity=true`) or need a login
+
+   Summarise in two or three plain lines. If the file holds a password, don't repeat it, and suggest moving it to a secret. The check report and drift need Flyway Enterprise.
+3. **Where to deploy:** "Which environment should the pipeline deploy to?" List their environments, numbered, with a test one as the default. It must be a test environment. If they pick production, or one with real customer data, stop kindly (rule 1).
+4. **The report's scratch database:** the change report needs an environment Flyway can rebuild (one with a `provisioner`), other than development and shadow, which belong to the developers. If they have one, offer it as the default. Otherwise ask: "The report needs an empty scratch database Flyway can rebuild. 1 I'll add a Check environment: you create an empty database, and I add it to `flyway.toml`, set up like your shadow (default) 2 Leave out the change report; you still get drift, code review and the SQL to run"
+   - **1:** they create the empty database on the target's server; give them the one-line `CREATE DATABASE`. When they say *done*, and once they agree to the change, add `[environments.Check]` with its URL and the same `provisioner` and resolver block as their shadow.
+   - **2:** in the pipeline file, remove `-changes`, `"-check.buildEnvironment=Check"` and the Check login arguments.
+5. **Record and go on:** in `project-profile.md`, note the starting point (existing project at its path), the target and the report environment. Then go to the Pipeline step.
 
 ## If a backup isn't possible (Azure SQL Database or Managed Instance)
 
@@ -220,10 +281,11 @@ Use a baseline script instead and say so in one line: "Your platform can't back 
 
 ## Commands the user can type
 
-`where am I`, `next`, `back`, `skip`, `problem` (switch to the troubleshoot skill), `more` (fuller detail), `end`.
+`done`, `where am I`, `next`, `back`, `skip`, `desktop` (open the project in Flyway Desktop), `pipeline` (set up a pipeline), `problem` (switch to the troubleshoot skill), `more` (fuller detail), `end`.
 
 ## Where to look for detail
 
 - Library `Documentation/FlywayAIDump/` (SQL Server): concepts 02, install and licence 04, POC plan 05, baselines and Backup as Baseline 07, developer workflows 08, `flyway.toml` 10, pipelines 11 and 12, checks 13, drift and undo 14, MCP server 20, errors 22 and 23.
 - Redgate: Backup as Baseline (https://documentation.red-gate.com/flyway/learn-more-about-flyway/how-to-articles/use-a-sql-server-backup-to-baseline-a-database) and the POC checklist (https://documentation.red-gate.com/fd/poc-checklist-317493040.html).
 - Oracle: `oracle.md`. PostgreSQL and MySQL: `postgresql-mysql.md`. Each lists the Redgate pages it relies on.
+- Pipelines: `pipelines/README.md` and each tool's `README.md`. Redgate: Flyway AutoPilot (https://documentation.red-gate.com/flyway/getting-started-with-flyway/first-steps-flyway-autopilot-a-beginners-guide) and the sample pipelines (https://github.com/red-gate/Flyway-Sample-Pipelines).

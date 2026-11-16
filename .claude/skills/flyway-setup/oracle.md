@@ -82,5 +82,6 @@ provisioner = "backup"
 
 - No `Filter.scpf`: to leave objects out, use Flyway Desktop's filter, which writes `filter.rgf`.
 - `Rules/` and `sqlfluff.cfg` are T-SQL rules. Leave `-code` out of the `check` commands unless their SE has set up Oracle rules.
-- In the drift exercise, the manual change is an `ALTER TABLE … ADD` run in SQL Developer or SQL*Plus.
+- If they try the drift check from the POC workflow, the manual change is an `ALTER TABLE … ADD` run in SQL Developer or SQL*Plus.
 - If Data Pump isn't available to them, use the baseline-script fallback at the end of `SKILL.md`, with `provisioner = "clean"` on shadow, Check and Build.
+- **Pipeline:** remove `-code` from the check command. Add `TARGET_DATABASE_USERNAME` and `TARGET_DATABASE_PASSWORD` as secrets, and `FLYWAY_CHECK_CONNECT` too, passed to the check step as an environment variable, so Data Pump can restore Check.

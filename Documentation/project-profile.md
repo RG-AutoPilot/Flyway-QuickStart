@@ -21,6 +21,7 @@ Your AI assistant fills this in as you go, so you can stop and pick up later. Ne
 
 | Question | Answer |
 |---|---|
+| Starting point (new sandbox / existing project: its folder, target and report environments) | |
 | Database platform (SQL Server / Oracle / PostgreSQL / MySQL / other: name it) | SQL Server |
 | Server kind (machine or VM / Azure SQL MI / Azure SQL Database / other) | Own machine: `US-SLS-49H24K4\SQLEXPRESS` (SQL Server Express) |
 | Sign-in (Windows / SQL or database login) | Windows |
@@ -30,7 +31,7 @@ Your AI assistant fills this in as you go, so you can stop and pick up later. Ne
 | Baseline backup or dump file (path as the server sees it) | `C:\Program Files\Microsoft SQL Server\MSSQL17.SQLEXPRESS\MSSQL\Backup\NorthwindFW_FlywayBaseline.bak` |
 | Database names | Prefix `NorthwindFW`: `_Dev`, `_Test`, `_Prod`, `_Shadow`, `_Check`, `_Build` |
 | Things Flyway ignores (filters) | None (user chose to keep everything, including `foo` and `bar`) |
-| Pipeline (GitHub Actions / Azure DevOps / none) | |
+| Pipeline (tool; on this machine or the team's; where the code and the pipeline file live) | |
 
 ## Decision log
 

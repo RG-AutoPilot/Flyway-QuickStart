@@ -37,7 +37,7 @@ Find the cause and get the user unstuck, or hand them a short, safe-to-share rep
    | Backup as Baseline, baseline script, restore | Library file 07; `Scripts/CreateSandboxDatabases.sql` |
    | `flyway.toml`, environments, filters, shadow | Library file 10 |
    | `flyway --version` complains about a setting in `flyway.toml` | Flyway is too old: update it, don't edit the file |
-   | Pipeline failure | Library files 11, 12 and 13; `Scripts/flyway-ci.ps1` |
+   | Pipeline failure | `pipelines/README.md` and the tool's `README.md`; library files 11, 12 and 13 |
    | Oracle or Data Pump | `.claude/skills/flyway-setup/oracle.md` and the Redgate pages it links |
 | PostgreSQL or MySQL, `pg_dump`, `psql`, `mysqldump`, `mysql` | `.claude/skills/flyway-setup/postgresql-mysql.md` (its failure list) and the Redgate pages it links |
    | Flyway MCP server not responding | Library file 20, section 7 (the CLI works without it) |

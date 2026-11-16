@@ -112,5 +112,5 @@ Item 2 (the user marks Test and Prod at 001) is unchanged.
 
 - **Filters:** there's no `Filter.scpf`. To leave objects out, use Flyway Desktop's filter, which writes `filter.rgf`.
 - **Code review (`-code`):** works as it is, because `sqlfluff.cfg` uses the generic `ansi` dialect. If it reports parsing errors on valid code, set `dialect = postgres` or `dialect = mysql` there.
-- **Drift exercise:** the manual change is an `ALTER TABLE … ADD` run in psql or pgAdmin, or in mysql or MySQL Workbench.
-- **Pipeline:** the runner needs the `DB_USERNAME` and `DB_PASSWORD` secrets, because these logins always have passwords. "Restores Build from the baseline" means Flyway empties Build and runs the `B001` script and the migrations on it.
+- **Drift check (POC workflow):** the manual change is an `ALTER TABLE … ADD` run in psql or pgAdmin, or in mysql or MySQL Workbench.
+- **Pipeline:** set the `TARGET_DATABASE_USERNAME` and `TARGET_DATABASE_PASSWORD` secrets, because these logins always have passwords. The check report empties Check (the clean provisioner), then runs the `B001` script and the migrations on it.

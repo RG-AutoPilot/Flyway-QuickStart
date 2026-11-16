@@ -4,12 +4,12 @@ This repo is a ready-made **Flyway Enterprise sandbox project** for SQL Server, 
 
 ## What to do
 
-- **"start", "set up", "get started", "next", "where am I":** read `.claude/skills/flyway-setup/SKILL.md` and follow it. It works in any AI tool. If yours has no skills feature, treat the file as your instructions.
+- **"start", "set up", "get started", "next", "where am I":** read `.claude/skills/flyway-setup/SKILL.md` and follow it. It works in any AI tool. If yours has no skills feature, treat the file as your instructions. Someone who already has a Flyway Enterprise project can go straight to setting up a pipeline for it.
 - **An error, "problem", "stuck", or a step that failed twice:** read `.claude/skills/flyway-troubleshoot/SKILL.md` and follow it, then return to the setup.
 - **Progress and decisions** live in `Documentation/project-profile.md`. Read it first; update it at the end of each phase.
 - **Reference, only when you need detail:** `Documentation/FlywayAIDump/` (SQL Server library; start at file 00's routing table) and https://documentation.red-gate.com.
 
-Already here: `flyway.toml` (settings), `Scripts/` (create-databases SQL, CLI installer, pipeline helper), code-review rules (`Rules/`, `sqlfluff.cfg`), a filter (`Filter.scpf`) and optional pipelines (`.github/workflows/flyway.yml`, `AzureDevOps/flyway-pipeline.yml`). Empty on purpose: `schema-model/`, `migrations/` and the environments in `flyway.toml`.
+Already here: `flyway.toml` (settings), `Scripts/` (create-databases SQL, CLI installer), code-review rules (`Rules/`, `sqlfluff.cfg`), a filter (`Filter.scpf`) and optional pipelines (`pipelines/`, one folder per CI/CD tool). Empty on purpose: `schema-model/`, `migrations/` and the environments in `flyway.toml`.
 
 ## Rules that always apply
 
@@ -20,8 +20,9 @@ Already here: `flyway.toml` (settings), `Scripts/` (create-databases SQL, CLI in
    - You run the Flyway CLI against `development` and `shadow` only: `--version`, `info`, `diff`, `model` and `generate`. If your tool has the Flyway MCP server (`.mcp.json`, preview), you may use it for the same work.
    - The user runs anything that changes Test or Prod (`baseline`, `migrate`, `undo`), in a terminal in this folder or in Flyway Desktop. Never run those yourself, even if asked: say you're blocked from changing their deployment targets, and guide them through it instead. Never run `clean` or `repair`.
    - You never run SQL against their databases. Give them the script and explain it; they run it in SSMS, Azure Data Studio or sqlcmd (SQL Server), SQL Developer (Oracle), psql or pgAdmin (PostgreSQL), or mysql or MySQL Workbench (MySQL).
+   - Pipelines: you write and tailor the pipeline files, and commit once they agree. They install CI/CD tools, register runners or agents, enter secrets and run `git push`.
    - If you can't run commands at all, give the user each command and ask them to paste the output.
-   - On Windows use PowerShell, and quote any Flyway argument containing a dot. Stay inside this folder. Don't search the machine for files; ask.
+   - On Windows use PowerShell, and quote any Flyway argument containing a dot. Stay inside this folder, or the folder of an existing Flyway project the user names. Don't search the machine for files; ask. The one exception is the setup skill's lookup of Flyway Desktop in the installed-programs list.
 5. **No secrets.** Never ask for, show or store passwords, tokens or permits. URLs in `flyway.toml` carry no credentials (Windows sign-in: `integratedSecurity=true`). SQL logins go into Flyway Desktop, which saves them in the git-ignored `flyway.user.toml`. Pipelines use secrets. If someone pastes a secret, tell them to rotate it and don't repeat it.
 6. **Flyway writes the migrations.** Never hand-write or edit a migration; generate it from the schema model. Never change a migration that has been applied.
 7. **Never invent** a command, flag, TOML key or URL. If the library and docs.red-gate.com don't cover it, say so. Label preview features as preview.
