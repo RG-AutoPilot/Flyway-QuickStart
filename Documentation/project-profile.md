@@ -13,8 +13,8 @@ Your AI assistant fills this in as you go, so you can stop and pick up later. Ne
 | Schema model captured | done | 15 tables (incl. `foo`, `bar`, kept), 16 views, 7 procedures, all `dbo`; no filters |
 | Baseline set (Test and Prod marked) | done | Shadow restored from the baseline and shows 001; user ran `flyway baseline -baselineVersion=001` on Test and Prod and reported success |
 | First migration generated | done | `V002__add_customer_email.sql` + `U002__add_customer_email.sql` (adds nullable `Customers.Email`); self-check on Shadow found no differences |
-| Workflows tried (deploy, check, undo, drift) | not started | |
-| Pipeline (optional) | not started | |
+| Workflows tried (deploy, check, undo, drift) | done | User reported trying all four (deploy, check, drift, undo) on Test, using Redgate's POC workflow page; Flyway Desktop installed and opened on this project |
+| Pipeline (optional) | in progress | `.github/workflows/flyway.yml` copied from `pipelines/github-actions/`; no tailoring needed (Windows sign-in, env names `Test` and `Check` match) |
 | Wrap-up | not started | |
 
 ## Choices
@@ -31,7 +31,7 @@ Your AI assistant fills this in as you go, so you can stop and pick up later. Ne
 | Baseline backup or dump file (path as the server sees it) | `C:\Program Files\Microsoft SQL Server\MSSQL17.SQLEXPRESS\MSSQL\Backup\NorthwindFW_FlywayBaseline.bak` |
 | Database names | Prefix `NorthwindFW`: `_Dev`, `_Test`, `_Prod`, `_Shadow`, `_Check`, `_Build` |
 | Things Flyway ignores (filters) | None (user chose to keep everything, including `foo` and `bar`) |
-| Pipeline (tool; on this machine or the team's; where the code and the pipeline file live) | |
+| Pipeline (tool; on this machine or the team's; where the code and the pipeline file live) | GitHub Actions, set up on this machine (self-hosted runner); code on GitHub; pipeline file in this project's repo |
 
 ## Decision log
 
