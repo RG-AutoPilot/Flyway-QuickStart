@@ -1,10 +1,10 @@
-Flyway Enterprise AI library - file 06 of 31
+Flyway Enterprise AI library - file 06 of 32
 MOVING OFF SSDT AND DACPAC DEPLOYMENTS - PATHS, STEPS AND WHAT YOU GAIN
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
 What this covers: How a SQL Server team that builds SQL projects (SSDT or SDK-style) and deploys a `.dacpac` with SqlPackage moves to Flyway Enterprise, at a pace each team chooses. It sets out the three paths (layer Flyway over SSDT first, run side by side per environment, full move), the setup steps, where every SSDT artifact goes, the cutover rules that keep a database safe, how to keep producing a `.dacpac` for a team that still needs one, merging branch work, team training, and what changes, stated factually. It also keeps the short description of the three deployment approaches (migrations-based, state-based, hybrid) that other files point to.
 
-Not in this file: Baselining from a script runner and running side by side with it (file 07), the developer authoring options in depth (`08 - developer workflows - every way to make a change and how to choose.txt`), version numbering across teams (file 09), `flyway.toml` settings and secrets (file 10), pipeline design and the state-based release gate (file 11, "The state-based prepare and deploy flow"), GitHub Actions workflows (file 12), code review rules (file 13), drift and undo (file 14), designing each team's flow (`28 - workflow architect - designing dev to PR to operations to pipeline for each team.txt`), and change tickets (`30 - ticketing and change requests - Jira, ServiceNow, Azure Boards and GitHub Issues.txt`).
+Not in this file: Baselining from a script runner and running side by side with it (file 07), the developer authoring options in depth (`08 - developer workflows - every way to make a change and how to choose.txt`), version numbering across teams (file 09), `flyway.toml` settings and secrets (file 10), pipeline design and the state-based release gate (file 11, "The state-based prepare and deploy flow"), GitHub Actions workflows (file 12), code review rules (file 13), drift and undo (file 14), designing each team's flow (`28 - workflow architect - designing dev to PR to operations to pipeline for each team.txt`), moving off SQL Change Automation or SQL Source Control (file 31), and change tickets (`30 - ticketing and change requests - Jira, ServiceNow, Azure Boards and GitHub Issues.txt`).
 
 Contents:
 1. The short version
@@ -76,6 +76,15 @@ Facts for both sides, from Microsoft Learn and Redgate's documentation. This is 
 
 Microsoft documents SDK-style projects (`Microsoft.Build.Sql`) as the format for new development. Tool support differs between Visual Studio and VS Code, so read Microsoft's overview page before choosing tooling, and don't describe SSDT as deprecated: https://learn.microsoft.com/en-us/sql/tools/sql-database-projects/sql-database-projects
 
+Microsoft's tooling, as documented. These facts were checked in October 2026 and change with Microsoft's releases, so confirm them on Microsoft Learn before relying on one:
+
+- What it is. Microsoft's free, state-based tooling for the SQL Server family: SQL Server, Azure SQL Database, Managed Instance, Synapse and SQL database in Fabric. Declarative `.sql` object files build into a `.dacpac`, with reference and syntax validation against a target platform. `SqlPackage /Action:Publish` compares the `.dacpac` with the target and applies the difference.
+- Project formats by tool. SDK-style projects are generally available and the recommended format. They're generally available in VS Code and in preview in Visual Studio 2022, and Visual Studio 2026 supports only the original project format.
+- CI/CD. `dotnet build` plus SqlPackage. The GitHub Action `azure/sql-action` v2.3 runs Publish, Script, DeployReport and DriftReport for a `.dacpac` or `.sqlproj`, and can comment on pull requests. Azure DevOps has an Azure SQL dacpac deployment task.
+- Drift. DriftReport reports changes since the database was last registered, so the database must be registered as a data-tier application (`RegisterDataTierApplication`). `BlockWhenDriftDetected` blocks a publish to a drifted or unregistered database. The report is XML.
+- Code analysis. Built-in rules, plus custom rules through DacFx. Code analysis is generally available in the VS Code MSSQL extension from v1.41 (as checked on 5 October 2026). Code analysis warnings don't fail the build by default. `BlockOnPossibleDataLoss` defaults to true.
+- Rollback. No native rollback mechanism. Redeploy a previous `.dacpac`, or restore a backup.
+
 ## 4. Choose a path per database or team
 
 | Path | Developers author in | Who makes the migration | Who deploys | Fits when |
@@ -106,7 +115,7 @@ Steps 5, 6 and 8 from the command line:
 > Not from Redgate docs — starting point, validate in your environment.
 
 ```bash
-flyway init -init.projectName=<db-name> -init.databaseType=sqlserver
+flyway init -projectName=<db-name> -databaseType=sqlserver
 # step 5: capture
 flyway diff -diff.source=development -diff.target=schemaModel
 flyway model
@@ -171,28 +180,26 @@ Documentation: https://learn.microsoft.com/en-us/sql/tools/sql-database-projects
 
 ## 9. Publish profiles to flyway.toml, and the pipeline swap
 
-Each publish profile becomes one small per-environment file. In a pipeline, each step loads only its own environment's file (file 10, section 6), so every `${env.X}` it reads resolves. The dotted placeholder key follows Redgate's linked-server placeholder tutorial.
+Each publish profile becomes one `[environments.<name>]` block in the shared `flyway.toml`. One file holding every environment works in a pipeline: an unset `${env.X}` that belongs to an environment the step doesn't use doesn't break the command, while the environment the step targets needs all of its variables set (file 10). A separate per-environment file loaded with `-configFiles` is optional. It loads in addition to the auto-discovered `flyway.toml`, not instead of it. The dotted placeholder key follows Redgate's linked-server placeholder tutorial.
 
 > Not from Redgate docs — starting point, validate in your environment.
 
 ```toml
-# ci/test.toml - was Test.publish.xml
+# flyway.toml - was Test.publish.xml
 [environments.test]
 url = "${env.FLYWAY_TEST_URL}"
 displayName = "Test"
 # was <SqlCmdVariable Include="Warehouse"> in Test.publish.xml
 flyway.placeholders.WarehouseDb = "<test-warehouse-db-name>"
-```
 
-```toml
-# ci/production.toml - was Production.publish.xml
+# was Production.publish.xml
 [environments.production]
 url = "${env.FLYWAY_PRODUCTION_URL}"
 displayName = "Production"
 flyway.placeholders.WarehouseDb = "<production-warehouse-db-name>"
 ```
 
-A migration that said `[$(Warehouse)].[dbo].[Orders]` now says `[${WarehouseDb}].[dbo].[Orders]`. Preview the substituted SQL with `flyway check -dryrun` before the first real run. Prove in your proof of concept that `${env.X}` resolves inside a file loaded with `-configFiles`; if it doesn't, use the documented environment-variable overrides (file 10, section 7).
+A migration that said `[$(Warehouse)].[dbo].[Orders]` now says `[${WarehouseDb}].[dbo].[Orders]`. Preview the substituted SQL with `flyway check -dryrun` before the first real run. From engine 12.6.2, `${env.X}` works in all Flyway configuration parameters, including those in a file loaded with `-configFiles`. Whether it also covers namespaces other than `flyway` isn't stated, so test that if you rely on it.
 
 The deploy job, before and after:
 
@@ -207,10 +214,11 @@ The deploy job, before and after:
 - uses: red-gate/setup-flyway@v3
   with: { edition: enterprise, i-agree-to-the-eula: true, email: '${{ secrets.FLYWAY_EMAIL }}', token: '${{ secrets.FLYWAY_TOKEN }}' }
 - uses: red-gate/flyway-actions/migrations/deploy@v2
+  env:
+    FLYWAY_PRODUCTION_URL: ${{ secrets.FLYWAY_PRODUCTION_URL }}
   with:
     target-environment: production
     baseline-on-migrate: 'false'   # the action defaults to 'true'; baseline deliberately (section 10)
-    extra-args: -configFiles=ci/production.toml
 ```
 
 Redgate's `migrations/checks` action runs the code review, change report, dry run and drift check and uploads the report. Its `migrations/deploy` action runs a drift check before migrating and saves a snapshot by default. File 12 has the complete workflows, approvals and runner choices. On GitHub Enterprise Server, the actions' report uploads may fail (file 12 has the workaround).
@@ -240,8 +248,9 @@ Another team, a reporting tool or a vendor may still need a `.dacpac`. Make one 
   shell: pwsh
   env:
     SOURCE_CONNECTION: ${{ secrets.TEST_READONLY_CONNECTION_STRING }}
+    FLYWAY_TEST_URL: ${{ secrets.FLYWAY_TEST_URL }}
   run: |
-    $info = flyway info -configFiles=ci/test.toml -environment=test -outputType=json | ConvertFrom-Json
+    $info = flyway info -environment=test -outputType=json | ConvertFrom-Json
     $version = $info.schemaVersion   # field shown in the JSON output on Redgate's Info command page
     SqlPackage /Action:Extract /SourceConnectionString:"$env:SOURCE_CONNECTION" /TargetFile:"dacpac/<db-name>-$version.dacpac"
 ```
@@ -304,7 +313,7 @@ Each point comes from Redgate's or Microsoft's documentation.
 - There's no refactorlog equivalent and no run-time `BlockOnPossibleDataLoss`. Renames are written by hand; protection moves to review and code rules.
 - Comparison doesn't infer renames, splits, NOT NULL columns without defaults on populated tables, or data moves. Write those by hand.
 - Automated generation in a pipeline is preview (section 5).
-- Whether the comparison engine detects renames, how it scripts SQLCLR assemblies, and row filters on static data aren't settled by the pages read for this library. Prove them in your proof of concept before relying on them.
+- Whether the comparison engine detects renames and how it scripts SQLCLR assemblies aren't settled by the pages read for this library. Prove them in your proof of concept before relying on them. Static data tables can filter rows with `whereClause` on SQL Server (file 07, section 7).
 - The Product Learning SSDT series predates the current configuration format and uses `flyway.conf`. The concepts hold; take syntax from current documentation.
 - SqlPackage facts here come from Microsoft Learn and change with its releases. Check a property before relying on it.
 

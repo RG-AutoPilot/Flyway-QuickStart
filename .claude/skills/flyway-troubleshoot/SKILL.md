@@ -39,8 +39,11 @@ Find the cause and get the user unstuck, or hand them a short, safe-to-share rep
    | `flyway --version` complains about a setting in `flyway.toml` | Flyway is too old: update it, don't edit the file |
    | Pipeline failure | `pipelines/README.md` and the tool's `README.md`; library files 11, 12 and 13 |
    | Oracle or Data Pump | `.claude/skills/flyway-setup/oracle.md` and the Redgate pages it links |
-| PostgreSQL or MySQL, `pg_dump`, `psql`, `mysqldump`, `mysql` | `.claude/skills/flyway-setup/postgresql-mysql.md` (its failure list) and the Redgate pages it links |
+   | PostgreSQL or MySQL, `pg_dump`, `psql`, `mysqldump`, `mysql` | `.claude/skills/flyway-setup/postgresql-mysql.md` (its failure list) and the Redgate pages it links |
+   | Unwanted `GRANT`/`DENY` in a diff or migration, or "changes" where only a made-up constraint or index name differs (`DF__…__1A2B3C4D`, `PK__…__F2AF558A…`) | Library file 10, comparison options: `ignorePermissions` and `ignoreSystemNamedConstraintAndIndexNames` (SQL Server). Ask before changing `flyway.toml`, then run the comparison again |
+   | Desktop offers to "baseline and continue" on Test or Prod | Library file 08, section 18. Don't accept it: they're already baselined |
    | Flyway MCP server not responding | Library file 20, section 7 (the CLI works without it) |
+   | Flyway MCP server registered but a tool errors, or you need its logs | Library file 23, section 12 (logs in `%localappdata%\Red Gate\Logs\Flyway`) |
 4. **Fix.** Give the fix in a sentence. If they need to run something, give it to them and ask them to say when it's done.
 5. **Verify** with the same check. Never say it's fixed just because a command ran.
 6. **Go back:** "Shall we pick up where we left off?"

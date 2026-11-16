@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 24 of 31
+Flyway Enterprise AI library - file 24 of 32
 What Flyway does not do
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -35,7 +35,7 @@ Contents:
 | Generate test data | Load test data with your own approved tooling or scripts. Reference data that belongs in source control goes in as static data or a data migration | 16 |
 | Capture data in snapshots, or roll data back. Snapshots, undo scripts and snapshot-based rollback restore schema, not rows | Restore data from your platform's backups or point-in-time recovery, as a last resort a person decides | 14 |
 | Check reference-data drift. Redgate's static-data drift tutorial says "The current drift detection only checks for drift in schema objects" | Compare named reference tables with SQL Data Compare, report only, and commit any script as a migration. The same page says Flyway Enterprise comes with SQL Data Compare | 16, 19 |
-| Filter static data by rows. The static data page offers column filtering, not a row WHERE clause | Use a repeatable or versioned data migration, or a SQL Data Compare project, for a subset of rows | 16, 19 |
+| Filter static data rows everywhere. `[[redgateCompare.staticDataTables]]` takes `excludedColumns` for columns and, on SQL Server only, `whereClause` for rows, but `whereClause` filters rows on live databases, not in the schema model | Set `whereClause` on the static data table for a subset of rows on SQL Server. If that doesn't fit, use a repeatable or versioned data migration, or a SQL Data Compare project | 07, 16, 19 |
 
 ## 3. Teams, conflicts and ownership
 
@@ -71,7 +71,7 @@ Contents:
 | Reconstruct what your previous deployment tool ran. Flyway's history starts when a database is baselined or first migrated | Keep the old tool's records as the history before the baseline, and note the baseline version and date in your decision log | 07, 17 |
 | Edit applied migrations safely. Flyway records a checksum for every applied migration, so a changed file fails `validate` on every database that ran it | Never edit an applied migration. Add a new one. Revert a commit and ship a compensating migration, and never rebase or force-push a branch whose migrations others have applied | 14, 22 |
 | Record who approved a release. Flyway records what ran and when | Use the GitHub environment approval or the approved change request, the pull request and the ticket key as the approval record | 17, 30 |
-| Show state-based deployments on the Flyway Insights Deployments page. It lists migrations-based deployments only | Keep your own pipeline evidence as the record | 18 |
+| Show state-based deployments on the Flyway Insights (preview) Deployments page. It lists migrations-based deployments only. The DORA metrics and business value (ROI) pages include both state-based and migrations-based deployments | Keep your own pipeline evidence as the record | 18 |
 
 ## 6. Comparison and authoring
 
@@ -83,7 +83,7 @@ Contents:
 | Document placeholder substitution for state-based deployment scripts. Placeholders work in versioned and repeatable migrations and SQL callbacks | Use migrations for anything that needs per-environment values | 10 |
 | Document command-line overrides for `prepare`'s comparison options, filters or static data on the pages checked | Keep them in `flyway.toml`, and prove any override in your POC before a pipeline depends on it | 10 |
 | Document comparison support for SQL Server ledger tables on the pages checked | If you use ledger tables, test generation and drift against your own schema in the POC, and keep ledger-table changes in hand-written migrations until you have | 08 |
-| Run one `flyway.toml` that references environment variables for every environment. Every `${env.X}` in a loaded file must resolve | Use one small `ci/<environment>.toml` per environment | 10, 12 |
+| Run against an environment whose `${env.X}` values aren't set. The command fails with "Unable to resolve environment variable: '<name>'". An unset variable in another, unused environment doesn't break the command on current engines (tested on the engine version file 25 lists), so one shared `flyway.toml` with every environment works. Not tested: placeholders and `[flyway]`-level settings that reference an unset variable | Keep every environment in the shared `flyway.toml`, and give each pipeline job the secrets for the environment it targets. Set any variable used outside an environment table in every job. A per-environment `ci/<environment>.toml` is optional, not required | 10, 12 |
 
 ## 7. AI, the MCP server and Insights
 
@@ -101,7 +101,7 @@ Contents:
 
 | Flyway doesn't | Do this instead | File |
 |---|---|---|
-| Fail when it can't license. It can fall back to Community features and carry on, so an Enterprise-only step may be missing or skipped rather than failing loudly | Check the edition the CLI reports at the start of every pipeline job and fail the job if it isn't Enterprise | 04, 12 |
+| Fail every step when it can't license. With no license found, Flyway runs its unlicensed feature set. Enterprise-only commands, such as `check -changes`, `check -drift`, `generate`, `diff`, `prepare`, `deploy`, `snapshot` and `mcp`, fail with a licensing error and exit code 35. But commands that also run unlicensed, such as `migrate`, carry on, and optional Enterprise behaviour within them can quietly not happen, so a step can pass with something missing | Check the edition the CLI reports at the start of every pipeline job and fail the job if it isn't Enterprise. Treat exit code 35 as a licensing failure (file 22) | 04, 12 |
 | Run Enterprise features without a license. Comparison-based features, drift, change reports, snapshots and the MCP server need Flyway Enterprise | Authenticate with a personal access token (`FLYWAY_EMAIL`, `FLYWAY_TOKEN`) or an offline permit (`FLYWAY_OFFLINE_PERMIT_PATH`) | 04 |
 
 ## 9. In daily use

@@ -3,7 +3,7 @@
  "platform_focus": "SQL Server on-premises, Azure SQL Database and Azure SQL Managed Instance",
  "ci_focus": "GitHub Actions with GitHub-hosted and self-hosted runners",
  "ai_focus": "Approved enterprise AI (GitHub Copilot, Microsoft 365 Copilot, Azure OpenAI and Azure AI Foundry, Google Gemini, Anthropic Claude, AWS Kiro and Amazon Bedrock) and local or self-hosted models with small context windows",
- "last_verified": "2026-10-20",
+ "last_verified": "2026-11-10",
  "currency_file": "25 - versions and currency.txt",
  "read_first": "00 - START HERE - index, AI setup and operating rules.txt",
  "people_note": "File 00, section 1: a short setup note for the people installing the library. There is nothing to fill in.",
@@ -37,7 +37,8 @@
   "10",
   "14",
   "23",
-  "30"
+  "30",
+  "31"
  ],
  "small_context_set": "The paste-in instructions block from file 00, plus the one or two task files the file 00 routing table names for the question.",
  "mode_triggers": [
@@ -88,15 +89,15 @@
   "customer_data": "The library contains no customer data. Placeholders stand in for real names. The assistant works out your setup from the repository (file 01); keep your decision log outside the library files.",
   "language": "The assistant answers in the language the person writes in; commands, keys, file names and error text stay in English."
  },
- "total_words": 114812,
+ "total_words": 139387,
  "workflow_architect_file": "28 - workflow architect - designing dev to PR to operations to pipeline for each team.txt",
  "scenario_file": "29 - scenario playbooks - greenfield, brownfield, monolith, many databases and microservices.txt",
  "ticketing_file": "30 - ticketing and change requests - Jira, ServiceNow, Azure Boards and GitHub Issues.txt",
- "file_count": 31,
+ "file_count": 32,
  "files": [
   {
    "file": "00 - START HERE - index, AI setup and operating rules.txt",
-   "job": "The entry point to a 31-file library about Flyway Enterprise on SQL Server (on-premises, Azure SQL Database and Azure SQL Managed Instance) with GitHub and GitHub Actions. Section 1 is a short note for the people setting it up. The rest is for the assistant: the instruction block to paste into your AI tool, where that block goes in each tool, the rules the assistant follows, and a table that routes every question to one or two files.",
+   "job": "The entry point to a 32-file library about Flyway Enterprise on SQL Server (on-premises, Azure SQL Database and Azure SQL Managed Instance) with GitHub and GitHub Actions. Section 1 is a short note for the people setting it up. The rest is for the assistant: the instruction block to paste into your AI tool, where that block goes in each tool, the rules the assistant follows, and a table that routes every question to one or two files.",
    "answers": [
     "what can you do with the Flyway Library",
     "which file answers this",
@@ -112,8 +113,8 @@
     "operating",
     "rules"
    ],
-   "does_not_cover": "How the assistant works out your setup (file 01). Product facts and commands (files 02 to 26). Designing workflows (file 28) and scenario playbooks (file 29). Modes and guided tracks (file 27). Detailed setup for approved, private and local AI tools (file 03).",
-   "words": 3624
+   "does_not_cover": "How the assistant works out your setup (file 01). Product facts and commands (files 02 to 26). Designing workflows (file 28) and scenario playbooks (file 29). Modes and guided tracks (file 27). Detailed setup for approved, private and local AI tools (file 03). Moving off SQL Change Automation or SQL Source Control (file 31).",
+   "words": 3897
   },
   {
    "file": "01 - how the assistant works out your setup - discovery, defaults and decision log.txt",
@@ -132,7 +133,7 @@
     "log"
    ],
    "does_not_cover": "How to read and change `flyway.toml` in detail, including the full fresh-project checklist (`10 - project configuration - flyway.toml, environments, filters, shadow databases and secrets.txt`). Designing a workflow for each team (`28 - workflow architect - designing dev to PR to operations to pipeline for each team.txt`). Matching your estate to a scenario (`29 - scenario playbooks - greenfield, brownfield, monolith, many databases and microservices.txt`). Modes and guided tracks (file 27).",
-   "words": 2930
+   "words": 2984
   },
   {
    "file": "02 - concepts - the two loops, vocabulary, project layout and which tool when.txt",
@@ -152,7 +153,7 @@
     "when"
    ],
    "does_not_cover": "Installing the tools (file 04), the three deployment approaches and moving off SQL projects (file 06), baselining (file 07), the authoring steps (file 08), several teams on one database (file 09), `flyway.toml` settings (file 10), pipelines (files 11 and 12), each Redgate tool in depth (file 19), designing each team's workflow (file 28), scenario playbooks for your estate (file 29), and ticketing (file 30).",
-   "words": 3012
+   "words": 3177
   },
   {
    "file": "03 - private and local AI - running this library on approved and on-premises models.txt",
@@ -172,7 +173,7 @@
     "models"
    ],
    "does_not_cover": "The paste-in rules block (file 00). Instruction-file names per tool, Flyway MCP server (preview) registration per tool, and guardrails (file 20). Skills (file 21). How the assistant works out your setup and records decisions (file 01).",
-   "words": 3645
+   "words": 3662
   },
   {
    "file": "04 - prerequisites, install, Git, licensing and pipeline authentication.txt",
@@ -189,7 +190,7 @@
     "authentication"
    ],
    "does_not_cover": "the proof of concept plan (file 05), `flyway.toml` and environments (file 10), the workflow files (file 12), and fixing install, Git or connection faults (file 23).",
-   "words": 3752
+   "words": 4329
   },
   {
    "file": "05 - proof of concept - success criteria, plan, checklist and evidence.txt",
@@ -207,7 +208,7 @@
     "evidence"
    ],
    "does_not_cover": "installing and licensing (file 04), moving off SSDT and DACPAC deployments (file 06), baselining (file 07), developer workflows (file 08), designing each team's workflow (file 28), scenario playbooks (file 29), ticketing and change requests (file 30), parallel-team design (file 09), workflow files (file 12), checks (file 13), drift and recovery (file 14), the emergency-change runbook (file 15), audit evidence design (file 17).",
-   "words": 4422
+   "words": 4521
   },
   {
    "file": "06 - moving off SSDT and DACPAC deployments - paths, steps and what you gain.txt",
@@ -227,7 +228,7 @@
     "gain"
    ],
    "does_not_cover": "Baselining from a script runner and running side by side with it (file 07), the developer authoring options in depth (`08 - developer workflows - every way to make a change and how to choose.txt`), version numbering across teams (file 09), `flyway.toml` settings and secrets (file 10), pipeline design and the state-based release gate (file 11, \"The state-based prepare and deploy flow\"), GitHub Actions workflows (file 12), code review rules (file 13), drift and undo (file 14), designing each team's flow (`28 - workflow architect - designing dev to PR to operations to pipeline for each team.txt`), and change tickets (`30 - ticketing and change requests - Jira, ServiceNow, Azure Boards and GitHub Issues.txt`).",
-   "words": 4629
+   "words": 4950
   },
   {
    "file": "07 - moving off a script runner - baselining existing SQL Server databases and running side by side.txt",
@@ -248,7 +249,7 @@
     "running"
    ],
    "does_not_cover": "SQL projects compared with Flyway (file 06), the proof of concept plan (file 05), daily authoring (file 08), version numbering across teams (file 09), release ordering across databases (file 11), drift and undo (file 14), and building development and test databases (file 16).",
-   "words": 3113
+   "words": 3558
   },
   {
    "file": "08 - developer workflows - every way to make a change and how to choose.txt",
@@ -266,7 +267,7 @@
     "choose"
    ],
    "does_not_cover": "Designing the whole dev to pull request to operations flow for a team (file 28, workflow architect), situation cards such as greenfield or brownfield (file 29, scenario playbooks), version numbering and collisions across teams (file 09), `flyway.toml`, filters and secrets (file 10), the pipeline (files 11 and 12), pull request checks in depth (file 13), building development and shadow databases (file 16), the MCP server's setup and guardrails (file 20), SQL Prompt (file 19).",
-   "words": 4450
+   "words": 5525
   },
   {
    "file": "09 - many teams on one database - branches, version numbering, ownership and merge conflicts.txt",
@@ -287,11 +288,11 @@
     "conflicts"
    ],
    "does_not_cover": "Each developer's authoring routes (file 08, developer workflows), the end-to-end team design (file 28, workflow architect), situation cards such as a monolith or many databases (file 29, scenario playbooks), `flyway.toml` and secrets (file 10), the pipeline, hotfixes and rollback (file 11), the GitHub Actions workflows (file 12), reading the errors (file 22), ticket keys (file 30).",
-   "words": 4096
+   "words": 4099
   },
   {
    "file": "10 - project configuration - flyway.toml, environments, filters, shadow databases and secrets.txt",
-   "job": "Configuration for SQL Server on premises, Azure SQL Database and Azure SQL Managed Instance. Layers, the anatomy of `flyway.toml`, how to tell a freshly created project from one a team has configured and uses, JDBC URLs including Entra authentication, the six environments, one small `ci/<environment>.toml` per environment, secrets in GitHub Actions, resolvers, placeholders, filters, comparison options, and safety settings.",
+   "job": "Configuration for SQL Server on premises, Azure SQL Database and Azure SQL Managed Instance. Layers, the anatomy of `flyway.toml`, how to tell a freshly created project from one a team has configured and uses, JDBC URLs including Entra authentication, the six environments, optional per-environment `ci/<environment>.toml` files, secrets in GitHub Actions, resolvers, placeholders, filters, comparison options, and safety settings.",
    "answers": [
     "Change flyway.toml, environments, filters, secrets"
    ],
@@ -307,7 +308,7 @@
     "secrets"
    ],
    "does_not_cover": "How the assistant discovers your setup (file 01, which points here for the fresh-project signals), installing and licensing Flyway (file 04), the ways developers make changes with development and shadow (file 08), version numbering and `outOfOrder` (file 09), the workflows that load these files (files 11 and 12), and drift and snapshot settings in use (file 14).",
-   "words": 4389
+   "words": 6425
   },
   {
    "file": "11 - pipelines - the core pattern, promotion, approvals, hotfixes and rollback paths.txt",
@@ -326,7 +327,7 @@
     "paths"
    ],
    "does_not_cover": "GitHub Actions syntax, runners, reusable workflows and Azure authentication (file 12), the contents of each environment's configuration and secrets (file 10), how developers make changes (file 08, developer workflows), designing a workflow per team (file 28, workflow architect), situation cards such as monolith or microservices (file 29, scenario playbooks), version numbers and the collision check (file 09), code review rules and database tests (file 13), drift, snapshots and recovery (file 14), DBA runbooks (file 15), ticket keys and change requests (file 30), audit evidence (file 17), reading a failed run (file 22), and baselining and the cut-over from the script runner (file 07).",
-   "words": 4677
+   "words": 5144
   },
   {
    "file": "12 - pipelines - GitHub Actions, self-hosted runners, on-premises SQL Server and Azure SQL.txt",
@@ -347,7 +348,7 @@
     "azure"
    ],
    "does_not_cover": "the pipeline design and why (file 11), what each `ci/<env>.toml` contains (file 10), install and licensing (file 04), the version-collision rule (file 09), designing per team (file 28), failure diagnosis (file 22), and the audit evidence you keep (file 17).",
-   "words": 4891
+   "words": 6472
   },
   {
    "file": "13 - code review, quality gates and database tests.txt",
@@ -364,7 +365,7 @@
     "tests"
    ],
    "does_not_cover": "the pull request build as a whole (file 11), GitHub Actions workflow files (file 12), drift, snapshots and undo in depth (file 14), the ticket-key rule end to end (file 17), SQLFluff start-up errors (file 23), the last rule number and bundled versions (file 25), the review checklist card (file 27).",
-   "words": 3324
+   "words": 4603
   },
   {
    "file": "14 - drift detection, snapshots, undo and recovery.txt",
@@ -380,7 +381,7 @@
     "recovery"
    ],
    "does_not_cover": "code review and tests (file 13), incident scenario cards (file 22), the DBA emergency-change routine (file 15), re-baselining (file 07), pipeline placement (files 11, 12), audit use of drift reports (file 17).",
-   "words": 3198
+   "words": 3791
   },
   {
    "file": "15 - the operations workflow - DBA release duties, emergency changes and daily runbooks.txt",
@@ -400,7 +401,7 @@
     "runbooks"
    ],
    "does_not_cover": "building the pipeline (files 11 and 12), drift and snapshot detail (file 14), reading errors (file 22), environments, accounts and secrets (file 10), provisioning dev and test databases (file 16), audit evidence (file 17), Flyway Insights (file 18), Redgate Monitor and the compare tools (file 19), the mode scripts that drive these runbooks (file 27).",
-   "words": 2986
+   "words": 3036
   },
   {
    "file": "16 - development and test databases - provisioning from source, reference data and anonymized copies.txt",
@@ -421,7 +422,7 @@
     "copies"
    ],
    "does_not_cover": "The authoring routes and daily loop for each development database model (file 08, developer workflows), team-level design (file 28, workflow architect), situation cards such as many databases or microservices (file 29, scenario playbooks), the pipeline that builds and tests (files 11 and 13), baselining production (file 07), drift response (file 14), and audit evidence (file 17).",
-   "words": 4360
+   "words": 5000
   },
   {
    "file": "17 - audit evidence, change traceability and regulated change control.txt",
@@ -438,7 +439,7 @@
     "control"
    ],
    "does_not_cover": "building the pipeline (files 11 and 12), drift and snapshot mechanics (file 14), code review rules (file 13), the DBA runbooks (file 15), Flyway Insights (file 18), the three deployment approaches (file 06, section 2), and linking work items and change requests in Jira, ServiceNow, Azure Boards or GitHub Issues, including the ticket-key pull request check and gating production on an approved change (`30 - ticketing and change requests - Jira, ServiceNow, Azure Boards and GitHub Issues.txt`).",
-   "words": 3370
+   "words": 3494
   },
   {
    "file": "18 - Flyway Insights - what it sends, data policy, setup and DORA metrics.txt",
@@ -458,7 +459,7 @@
     "metrics"
    ],
    "does_not_cover": "drift detection (file 14), pipeline construction (files 11 and 12), audit evidence you keep yourself (file 17), proof-of-concept planning (file 05). Nothing else in this library depends on Flyway Insights.",
-   "words": 3517
+   "words": 3700
   },
   {
    "file": "19 - SQL Compare, SQL Data Compare, SQL Prompt and Redgate Monitor alongside Flyway.txt",
@@ -477,7 +478,7 @@
     "flyway"
    ],
    "does_not_cover": "Flyway's authoring loop (file 08), baselining (file 07), Flyway drift and snapshots (file 14), code review (file 13), Insights (file 18), the MCP server and AI guardrails (file 20), versions (file 25), links (file 26).",
-   "words": 3002
+   "words": 3221
   },
   {
    "file": "20 - AI-assisted database work - instruction files, the Flyway MCP server and guardrails.txt",
@@ -498,7 +499,7 @@
     "guardrails"
    ],
    "does_not_cover": "Loading the library itself into each tool, knowledge bases and local models (file 03). Ready-made skills (file 21). Every way to make a change, including the MCP agent workflow (file 08). Code review rules (file 13). Pipelines and approvals (files 11 and 12). Audit evidence (file 17). Versions and preview status (file 25).",
-   "words": 3792
+   "words": 5503
   },
   {
    "file": "21 - skills kit - ready-made skills for Copilot, Claude Code and local agents.txt",
@@ -538,7 +539,7 @@
     "drills"
    ],
    "does_not_cover": "snapshot, drift, undo, repair and restore decisions in depth (file 14), version numbering and out-of-order rules (file 09), accounts and connection settings (file 10), workflow design (files 11 and 12), install, sign-in and connectivity faults (file 23), the drill mode script (file 27).",
-   "words": 3616
+   "words": 5631
   },
   {
    "file": "23 - troubleshooting - install, Desktop, CLI, Git, runners and connectivity.txt",
@@ -556,7 +557,7 @@
     "connectivity"
    ],
    "does_not_cover": "failed migrations, checksum errors, drift and recovery (file 22), installing and licensing from scratch (file 04), `flyway.toml` and secrets (file 10), workflow design (file 12).",
-   "words": 3649
+   "words": 6918
   },
   {
    "file": "24 - what Flyway does not do.txt",
@@ -571,7 +572,7 @@
     "do"
    ],
    "does_not_cover": "How the capabilities that exist work (file 00 routes you to them). Current versions and preview status (file 25). Runtime failures (file 22) and tooling problems (file 23).",
-   "words": 2691
+   "words": 2859
   },
   {
    "file": "25 - versions and currency.txt",
@@ -584,11 +585,11 @@
     "currency"
    ],
    "does_not_cover": "How anything works (file 00 routes you). What Flyway doesn't do (file 24). Documentation links (file 26).",
-   "words": 2696
+   "words": 5043
   },
   {
    "file": "26 - documentation library.txt",
-   "job": "Redgate, Microsoft and GitHub documentation pages grouped by the job you're doing, in the order of the library's files. Every link in sections 1 to 18 was opened on 19 October 2026 and loaded with content on the stated topic, except the one listed as unchecked at the end of section 17; the SSMS pages in section 14, the ticketing links at the end of section 12 and the further reading in section 19 were checked on 20 October 2026. Section 19 adds Product Learning articles and Redgate sample repositories by situation, with older articles labelled. Where a page moved, the address given is where it landed. If your AI tool can't open links, these are for a person to open. Nothing else in the library depends on fetching them.",
+   "job": "Redgate, Microsoft and GitHub documentation pages grouped by the job you're doing, in the order of the library's files. Every link in sections 1 to 18 was opened on 19 October 2026 and loaded with content on the stated topic, except the one listed as unchecked at the end of section 17; the SSMS pages in section 14, the ticketing links at the end of section 12 and the further reading in section 19 were checked on 20 October 2026. Section 19 adds Product Learning articles and Redgate sample repositories by situation, with older articles labelled. Pages added on 10 November 2026 (the configuration, dry-run and snapshot settings, the API (Java) page, the roadmap, and the file 31 group at the end of section 5) were opened that day, except the entries marked \"from the source list\", which weren't re-opened. Addresses on the older `/fd/...` form were moved to the `/flyway/...` form where that page was confirmed to load. Where a page moved, the address given is where it landed. If your AI tool can't open links, these are for a person to open. Nothing else in the library depends on fetching them.",
    "answers": [
     "Find a documentation page"
    ],
@@ -597,7 +598,7 @@
     "library"
    ],
    "does_not_cover": "Explanations (each topic has a numbered file; file 00 routes you). Versions and preview status (file 25).",
-   "words": 3423
+   "words": 3862
   },
   {
    "file": "27 - modes - guided tracks, how-to, fix, drill, review, plan, learn, ask and daily.txt",
@@ -618,7 +619,7 @@
     "daily"
    ],
    "does_not_cover": "Product facts; every step names its source file. Routing (file 00). How the assistant reads your repository and its defaults (file 01). Workflow design method (file 28) and scenario cards (file 29). Drill scripts (file 22). Daily runbooks (file 15). Ready-made skills (file 21).",
-   "words": 5124
+   "words": 5253
   },
   {
    "file": "28 - workflow architect - designing dev to PR to operations to pipeline for each team.txt",
@@ -638,7 +639,7 @@
     "team"
    ],
    "does_not_cover": "Step-by-step authoring in each tool (file 08, developer workflows), version numbering and the collision check in detail (file 09), configuration and secrets (file 10), the pipeline pattern (file 11) and its GitHub Actions YAML (file 12), DBA runbooks (file 15), situation cards such as greenfield, brownfield or SSDT (file 29, scenario playbooks), ticketing and change requests (file 30), and how the assistant discovers your setup and keeps the decision log (file 01, how the assistant works out your setup).",
-   "words": 4275
+   "words": 4331
   },
   {
    "file": "29 - scenario playbooks - greenfield, brownfield, monolith, many databases and microservices.txt",
@@ -657,7 +658,7 @@
     "microservices"
    ],
    "does_not_cover": "The intake and the reference designs these cards point to (file 28, workflow architect), the SSDT move in depth (file 06, moving off SSDT and DACPAC deployments), baselining and the script-runner cut-over in detail (file 07), version collisions (file 09), pipeline YAML (file 12), and change requests (file 30).",
-   "words": 2931
+   "words": 3057
   },
   {
    "file": "30 - ticketing and change requests - Jira, ServiceNow, Azure Boards and GitHub Issues.txt",
@@ -678,6 +679,27 @@
    ],
    "does_not_cover": "What auditors ask and the per-release evidence pack (file 17), building the pipelines and approvals (files 11 and 12), check modes and code rules (file 13), drift handling (file 14), the DBA's emergency runbook (file 15, section 4), and how each team's flow fits together (`28 - workflow architect - designing dev to PR to operations to pipeline for each team.txt`).",
    "words": 3442
+  },
+  {
+   "file": "31 - moving off SQL Change Automation and SQL Source Control - mapping, steps and gotchas.txt",
+   "job": "How a SQL Server team using Redgate SQL Change Automation (SCA) or SQL Source Control (SoC) moves to Flyway Enterprise. It sets out what each tool is and does, their status as Redgate states it, how each SCA concept and PowerShell cmdlet maps to Flyway, Redgate's documented migration steps and a practical checklist, how baselines and the shadow database change, how a SoC project is imported into Flyway Desktop, a capability table for SoC, and the gotchas. It's stated as mechanics, not as a recommendation for either tool.",
+   "answers": [
+    "Move off SQL Change Automation or SQL Source Control"
+   ],
+   "keywords": [
+    "moving",
+    "off",
+    "SQL",
+    "Change",
+    "Automation",
+    "Source",
+    "Control",
+    "mapping",
+    "steps",
+    "gotchas"
+   ],
+   "does_not_cover": "Baselining in depth, Backup as Baseline and running side by side (file 07), moving off SSDT SQL projects (file 06), `flyway.toml` settings, environments and filters (file 10), pipelines (files 11 and 12), SQL Compare and the other Redgate tools alongside Flyway (file 19), current versions and preview status (file 25), and licensing (file 04).",
+   "words": 4114
   }
  ]
 }

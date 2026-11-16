@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 02 of 31
+Flyway Enterprise AI library - file 02 of 32
 Concepts - the two loops, vocabulary, project layout and which tool when
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -71,6 +71,7 @@ Two differences matter most. The unit of change is a numbered migration in Git r
 | Schema model | A folder of per-object files that mirrors your development database. Generated and committed; changed by capture, not by hand (file 08 has a guarded schema-model-first option). Its location is the `schemaModelLocation` setting | Section 5 |
 | Shadow database | A throwaway database Flyway builds your existing migrations into, so it can work out what the next migration must contain | File 10 |
 | Build database | The pipeline's throwaway database. Proves the migrations run, and is the base for change reports | File 13 |
+| Shadow versus build | Both are throwaway databases Flyway may clean or rebuild, but they do different jobs. The shadow belongs to one developer's author loop (generating and test-migrating); the build belongs to the pipeline (`check` and the pull request build). Don't point `check` at a shadow or reuse one database for both | File 16 |
 | Development database | The database an author changes. Dedicated to one author, or shared | File 08 |
 | Drift | A difference between a database and what Flyway expects it to be, usually from a change made outside the pipeline | File 14 |
 | Snapshot | A point-in-time capture of a database's schema (not its data), used for drift checks and change reports | File 14 |
@@ -125,12 +126,12 @@ One database, one project. Where the project lives (a database repository, or be
 > Not from Redgate docs — starting point, validate in your environment.
 ```text
 <repo>/
-  flyway.toml             shared settings, committed
+  flyway.toml             shared settings and every environment, committed
   flyway.user.toml        personal connections, git-ignored
   migrations/             V, U and R scripts. Immutable once applied anywhere shared
   schema-model/           generated from development; change it by capture
-  ci/
-    test.toml             one small <environment>.toml per pipeline environment
+  ci/                     optional: small <environment>.toml files, only if you prefer them
+    test.toml
     uat.toml
     production.toml
   .github/
@@ -140,7 +141,7 @@ One database, one project. Where the project lives (a database repository, or be
   .gitignore              includes *.user.toml
 ```
 
-Why one `ci/<environment>.toml` per environment: every `${env.X}` reference in a loaded configuration file must resolve, so a step that loads a file mentioning production's variables fails in the test step. Each step loads only its own file (file 10). Whether `${env.X}` inside a file passed with `-configFiles` resolves the way you want is something to prove in the proof of concept (file 05); file 10 has the documented fallback.
+One shared `flyway.toml` can hold every environment, each with its own `${env.X}` references. Flyway resolves only the environment a command selects with `-environment`: tested on engine 13.x, a step for `test` ran with production's variables unset, and selecting an environment whose variable was unset failed with "Unable to resolve environment variable" (file 10). So per-environment `ci/<environment>.toml` files are optional, a matter of taste, not a requirement. If you use them, `-configFiles` loads them in addition to the auto-discovered `flyway.toml`, not instead of it, so the shared settings still apply. `${env.X}` resolves inside those files too. Not yet tested: placeholders and `[flyway]`-level settings that reference an unset variable, so keep those out of the shared file or set the variable in every step.
 
 ## 7. Which tool when
 
@@ -189,3 +190,5 @@ Contractors, partner developers and teams from an acquired business fit the same
 - Never present `cherryPick` as a command; it's a setting. Never say `outOfOrder` is on by default in the engine; tell the person to read their `flyway.toml`.
 - Never recommend a comparison tool deployment into a Flyway-managed database, or a data comparison that would put production data into a script, report or prompt.
 - Read the repository first (file 01) for the environment names and what is in scope before writing configuration or SQL.
+- Keep every environment in the shared `flyway.toml` unless the team already uses per-environment files. Don't say per-environment files are required, and don't say `-configFiles` replaces the auto-loaded `flyway.toml`; it adds to it.
+- Keep shadow and build as separate databases. Never suggest running `check` against the shadow.

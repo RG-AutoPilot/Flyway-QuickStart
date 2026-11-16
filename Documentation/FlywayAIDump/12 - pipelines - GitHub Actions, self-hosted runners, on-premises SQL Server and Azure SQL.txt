@@ -1,10 +1,10 @@
-Flyway Enterprise AI library - file 12 of 31
+Flyway Enterprise AI library - file 12 of 32
 Pipelines - GitHub Actions, self-hosted runners, on-premises SQL Server and Azure SQL
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
-What this covers: File 11's pipeline in GitHub Actions: repository layout and secrets, Redgate's `setup-flyway` and `flyway-actions` with their inputs, defaults and commands, Flyway Desktop's generated workflow, what GitHub Team, Enterprise Cloud and Enterprise Server can enforce, licensing on runners including offline permits, self-hosted runners for on-premises SQL Server, Azure SQL Database and Managed Instance authentication, three composed workflows (pull request, release, nightly drift), and reusable workflows many teams call.
+What this covers: File 11's pipeline in GitHub Actions: repository layout and secrets, Redgate's `setup-flyway` and `flyway-actions` with their inputs, defaults and commands, Flyway Desktop's generated workflow, what GitHub Team, Enterprise Cloud and Enterprise Server can enforce, licensing on runners including offline permits, self-hosted runners for on-premises SQL Server, Azure SQL Database and Managed Instance authentication, three composed workflows (pull request, release, nightly drift), reusable workflows many teams call, PowerShell steps on Windows, and a compact Azure DevOps equivalent (secret variables, deployment jobs with environment approvals, publishing the reviewed artifact).
 
-Not in this file: the pipeline design and why (file 11), what each `ci/<env>.toml` contains (file 10), install and licensing (file 04), the version-collision rule (file 09), designing per team (file 28), failure diagnosis (file 22), and the audit evidence you keep (file 17).
+Not in this file: the pipeline design and why (file 11), what each environment's configuration contains (file 10), install and licensing (file 04), the version-collision rule (file 09), designing per team (file 28), failure diagnosis (file 22), and the audit evidence you keep (file 17).
 
 Contents:
 1. Repository layout and secrets
@@ -21,9 +21,10 @@ Contents:
 12. Workflow 2: release, promotion and production
 13. Workflow 3: nightly drift check
 14. Reusable workflows for many teams
-15. In daily use
-16. Limits
-17. Instructions for the AI assistant using this file
+15. Azure DevOps Pipelines
+16. In daily use
+17. Limits
+18. Instructions for the AI assistant using this file
 
 ## 1. Repository layout and secrets
 
@@ -34,13 +35,13 @@ Contents:
   flyway-pr.yml              pull request validation
   flyway-release.yml         package once, test -> uat, production on demand
   flyway-drift-nightly.yml   scheduled drift check
-ci/
+ci/                          optional: one file per environment
   build.toml  test.toml  uat.toml  production.toml
 migrations/  callbacks/  flyway.toml  CODEOWNERS
 ```
 
-- Each `ci/<env>.toml` (file 10) reads `${env.FLYWAY_<ENV>_URL}`, `${env.FLYWAY_<ENV>_USER}` and `${env.FLYWAY_<ENV>_PASSWORD}`. Each step loads only its own file, and the job maps exactly those variables: the read-only check account in check jobs, the deploy account in deploy jobs.
-- Prove with `flyway info -X` in your proof of concept that `-configFiles` adds to the automatic `flyway.toml` and that `${env.X}` resolves. The documented fallback is variables named `environments_<env>_<setting>` (file 10).
+- Each environment reads `${env.FLYWAY_<ENV>_URL}`, `${env.FLYWAY_<ENV>_USER}` and `${env.FLYWAY_<ENV>_PASSWORD}` (file 10), and the job maps exactly those variables: the read-only check account in check jobs, the deploy account in deploy jobs.
+- Where the environments live is your choice. Flyway resolves `${env.X}` only for the environment selected with `-environment` (tested), so one shared `flyway.toml` holding every environment works, and a step needs only its own environment's variables. An unset variable for the selected environment fails with "Unable to resolve environment variable: '<NAME>'". The workflows below use the optional per-environment `ci/<env>.toml` files; `-configFiles` loads them in addition to the auto-loaded `flyway.toml` (Redgate's configFiles page, confirmed by testing). The other documented route is variables named `environments_<env>_<setting>` (file 10).
 - `CODEOWNERS` covers `.github/workflows/`, `ci/` and `migrations/`.
 
 | Where | Secrets |
@@ -84,7 +85,7 @@ Reports and drift-resolution scripts upload as artifacts, kept 7 days unless you
 - **`migrations/deploy` baselines by default.** A non-empty database with no history table is silently baselined. Set `baseline-on-migrate: 'false'` once a target is baselined (file 07).
 - **`migrations/deploy` always fails on drift.** There's no `fail-on-drift` input. An out-of-band hotfix stops the release until it's brought into source control (file 11, section 12); `skip-drift-check` is a recorded exception.
 - **`migrations/checks` provisions a Docker build database (preview)** when you name no build database. It needs Docker on the runner and, for SQL Server, `build-docker-i-agree-to-the-db-vendors-eula: 'true'` to accept Microsoft's license. Without either, the change report is skipped with a warning, not failed. Windows runners rarely have Linux Docker, so name a build database there, never a shared one: the action may clean it.
-- **Code scanning upload.** On a private repository it needs GitHub's code security feature, `security-events: write` and `actions: read`; a failed upload doesn't fail the action. Violation counts aren't set while `fail-on-code-review` is `true`.
+- **Code scanning upload.** On a private repository it needs GitHub's code security feature, `security-events: write` and `actions: read`; a failed upload doesn't fail the action. Violation counts aren't set while `fail-on-code-review` is `true`. In a hand-written workflow that runs `flyway check -code` as a plain step, nothing uploads for you: add GitHub's own SARIF upload action after that step and point it at the `.sarif` file. The file name follows the report name (unverified; look in the workspace after a first run).
 - **Artifact names collide** when one action runs twice for the same environment, or in a matrix; set unique report names.
 - **`generate` pushes.** It needs `contents: write`. A push made with the default `GITHUB_TOKEN` doesn't trigger new runs, so use an app token if the generated commit must be checked.
 - **Plumbing.** The actions run under `shell: bash`, install Node.js on self-hosted runners if missing (preinstall it on a locked-down network), and upload with newer artifact actions (section 6).
@@ -118,10 +119,10 @@ For private or internal repositories:
 ## 7. Installing and licensing Flyway on runners
 
 - Use `setup-flyway` with `version: ${{ vars.FLYWAY_VERSION }}` where the runner reaches Redgate's downloads. Otherwise preinstall the pinned Redgate command line (not the open-source package) or the pinned `redgate/flyway` image.
-- License with `FLYWAY_EMAIL` and `FLYWAY_TOKEN` for a service account, never a license key. Run `flyway version` early: an unlicensed runner silently skips drift checks and snapshots in the actions.
+- License with `FLYWAY_EMAIL` and `FLYWAY_TOKEN` for a service account, never a license key. Run `flyway version` early. On an unlicensed runner, Enterprise-only commands fail with exit code 35, while optional Enterprise behaviour, such as the actions' drift checks and snapshots, quietly doesn't happen.
 - On Linux and in containers set the proxy in `JAVA_ARGS` (file 23). Never run fork pull requests on a self-hosted runner; they get no secrets anyway.
 
-**Isolated runners: offline permit.** Store the command-line permit base64-encoded as a secret, decode it at run time and point `FLYWAY_OFFLINE_PERMIT_PATH` at the file. `setup-flyway` and `docker pull` need the internet, so preinstall. A permit lasts up to a year with no automatic refresh, and an expired one drops to Community features instead of failing, so check the banner and schedule the renewal (file 04).
+**Isolated runners: offline permit.** Store the command-line permit base64-encoded as a secret, decode it at run time and point `FLYWAY_OFFLINE_PERMIT_PATH` at the file. `setup-flyway` and `docker pull` need the internet, so preinstall. A permit lasts up to a year with no automatic refresh. When it expires, Enterprise-only commands fail with exit code 35 and optional Enterprise behaviour quietly stops, so check the banner and schedule the renewal (file 04).
 
 > Not from Redgate docs — starting point, validate in your environment.
 
@@ -156,7 +157,20 @@ GitHub-hosted runners can't reach a private SQL Server, so those jobs run on sel
 - **Linux: Kerberos.** Put `integratedSecurity=true` and `authenticationScheme=JavaKerberos` in the URL, and set `kerberosConfigFile` and `sqlserver.kerberos.login.file`. Keep the keytab as a base64 secret decoded to `$RUNNER_TEMP`. Clock skew and reaching the key distribution center are the usual failures. Otherwise use SQL logins.
 - **One identity per runner.** Read-only and deploy identities under integrated authentication need two runners, two service accounts and two runner groups.
 - **Groups, labels, isolation.** Restrict production-capable runner groups to the repositories (on Enterprise, the workflows) that deploy, and select them with `runs-on: [self-hosted, windows, <runner-label>]`. Environment secrets on a self-hosted runner are only as private as the runner, so prefer `--ephemeral` runners.
-- **Network.** Outbound HTTPS to GitHub, TCP to the SQL Server port, `encrypt=true` and certificate trust per your policy (file 23). Add `errorOverrides = ["S0001:0:I-"]` so `PRINT` output reports as information.
+- **Network.** Outbound HTTPS to GitHub, TCP to the SQL Server port, `encrypt=true` and certificate trust per your policy (file 23). Add `errorOverrides = ["S0001:0:I-"]` so `PRINT` output reports as information. New Desktop SQL Server projects include it by default (from version 11.10.1), and `deploy` honours it from engine 11.13, so state-based releases handle `PRINT` too. The format is `STATE:CODE:BEHAVIOUR` (`D`, `I`, `W`, `E`; the `-` suffix hides the original state and code; `*` matches any). It can't be combined with `batch = true`: Flyway fails fast. Don't use it to hide real errors.
+- **PowerShell steps.** If you call the CLI from `shell: pwsh` or `shell: powershell` steps instead of the actions:
+  - Quote every argument that contains a dot, such as `"-check.failOnDrift=true"`. PowerShell can split it, and Flyway then reports "Invalid argument: -check". For a JDBC URL with `;` or `&`, use `-url='"jdbc:..."'`.
+  - Check `$LASTEXITCODE` after each Flyway call and treat any non-zero value as failure. Branch only on 35 (licensing); from engine 12.9.0 other codes can be derived from the error code.
+  - In Windows PowerShell 5.1, redirecting native stderr with `2>&1` while `$ErrorActionPreference = 'Stop'` can throw before `$LASTEXITCODE` is read. Avoid the redirect, or relax the preference around the call.
+
+> Not from Redgate docs — starting point, validate in your environment.
+
+```powershell
+& flyway check -drift "-environment=production" "-check.failOnDrift=true" "-reportFilename=reports/production-drift"
+$code = $LASTEXITCODE
+if ($code -eq 35) { throw "Flyway licensing failure (exit 35): check FLYWAY_EMAIL and FLYWAY_TOKEN or the offline permit" }
+if ($code -ne 0) { throw "flyway check -drift failed (exit $code)" }
+```
 
 ## 9. Azure SQL Database and Managed Instance authentication
 
@@ -167,7 +181,7 @@ Both services take the same options. GitHub-hosted runners suit Azure SQL Databa
 | OIDC, then an access token | `azure/login`, then `az account get-access-token --resource https://database.windows.net/` into the `accessToken` JDBC property | None | Any runner that reaches the server; tokens last 60 to 90 minutes |
 | Service principal | `authentication=ActiveDirectoryServicePrincipal`, client ID as `user`, secret as `password` | Client secret | Redgate's recommended pipeline route; long runs |
 | Managed identity | `authentication=ActiveDirectoryMSI` (`msiClientId` if user-assigned) | None | Self-hosted runners on Azure virtual machines |
-| Azure Key Vault resolver | `password = "${azureKeyVault.<secret-name>}"` (file 10) | In the vault | Flyway uses the Azure SDK's standard credential chain, so an `azure/login` sign-in, managed identity or service principal variables are picked up. Read a test secret in the POC |
+| Azure Key Vault resolver | `password = "${azureKeyVault.<secret-name>}"` (file 10) | In the vault | The resolver page doesn't describe how it signs in. It's expected to use the Azure SDK's standard credential chain, so an `azure/login` sign-in, managed identity or service principal variables would be picked up (unverified). Read a test secret in the POC |
 | SQL login | `user` and `password` from environment secrets | Password | Where Entra isn't set up |
 
 `authentication=ActiveDirectoryDefault` is a Microsoft driver mode Redgate's tutorials don't cover; prove it first.
@@ -556,30 +570,164 @@ jobs:
 - A private central repository must allow access from the organization's repositories in its Actions settings.
 - Ship the pull request, release and drift workflows the same way.
 
-## 15. In daily use
+## 15. Azure DevOps Pipelines
+
+File 11's design carries over unchanged; only the syntax differs. Redgate's GitHub actions don't exist in Azure DevOps, so every check and deploy is a plain CLI step. What changes:
+
+- **Secret variables.** Secret variables, including those from a variable group, aren't exported to steps automatically. Map each one into the `env:` of every step that runs Flyway. Use separate variable groups for the read-only check account and the deploy account.
+- **Licensing.** `FLYWAY_EMAIL` and `FLYWAY_TOKEN` as secret variables mapped into `env:`, or an offline permit through `FLYWAY_OFFLINE_PERMIT_PATH` (section 7). Never run `flyway auth` in a pipeline.
+- **Install.** Preinstall the pinned Redgate command line on self-hosted Windows agents, or use the pinned `redgate/flyway` image. A Linux tarball download step doesn't suit Windows agents. Print `flyway version` first in every job.
+- **Docker images.** The `-azure` image variants have no entrypoint, so each command must start with `flyway`. The standard `redgate/flyway` image's entrypoint is `flyway`, so a CI step that needs a shell in it overrides the entrypoint (for example `entrypoint: [""]`, where the CI system supports that).
+- **Pipeline outputs.** Plain CLI steps have no action outputs such as `migrations-applied`. `-outputType=json` on `migrate` gives `migrationsExecuted`, `targetSchemaVersion` and a `migrations[]` list to read instead; other commands' JSON schemas are on each command's page. From engine 13.2.0 its timestamps carry a UTC offset (file 13).
+- **Approvals.** Make the production deploy a `deployment` job that names an Azure DevOps environment, and add an approval check to that environment in Azure DevOps. The check lives outside the YAML, so editing the pipeline can't remove it, which is the same reasoning as file 11, section 8. `ManualValidation@0` in an agentless job is the alternative the repository's shipped pipelines use; it's defined in the YAML itself. Serialize deployments per database, for example with an exclusive lock check on the environment.
+- **The reviewed artifact.** Package once, `publish` it, and `download: current` it in each later job. For state-based releases, publish the prepared script and the rollback script, and deploy the downloaded file unchanged.
+- **Drift re-check after approval.** The approval can wait for hours. Run `check -drift` again as its own step in the deploy job before `migrate` or `deploy`.
+- **PowerShell.** Quote dotted arguments, check `$LASTEXITCODE` after every call, and watch the Windows PowerShell 5.1 `2>&1` trap (section 8). `powershell:` steps run Windows PowerShell 5.1; `pwsh:` steps run PowerShell 7.
+- **SARIF.** `check -code` writes a SARIF 2.1.0 file beside the HTML and JSON reports (from engine 12.2.0). Publish it as an artifact for an Azure DevOps SARIF viewer. The file name follows the report name (unverified; look in the workspace after a first run).
+
+> Not from Redgate docs — starting point, validate in your environment.
+
+```yaml
+# azure-pipelines-flyway-release.yml: migrations-based, one shared flyway.toml,
+# [environments.production] reads ${env.FLYWAY_PRODUCTION_URL}, _USER and _PASSWORD.
+trigger:
+  branches: { include: [main] }
+  paths: { include: [migrations/*, flyway.toml, Filter.scpf] }
+pr: none
+
+variables:
+  - group: flyway-licence          # FLYWAY_EMAIL, FLYWAY_TOKEN (secret)
+
+stages:
+  - stage: Package
+    jobs:
+      - job: Package
+        pool: { name: <agent-pool> }
+        steps:
+          - checkout: self
+          - pwsh: |
+              $ErrorActionPreference = 'Stop'
+              New-Item -ItemType Directory -Force package | Out-Null
+              Compress-Archive -Path migrations, flyway.toml, Filter.scpf -DestinationPath package/flyway-package.zip
+              (Get-FileHash package/flyway-package.zip -Algorithm SHA256).Hash | Set-Content package/flyway-package.sha256
+            displayName: Package once
+          - publish: package
+            artifact: flyway-package
+
+  # Test and UAT stages go here, each a deployment job like ProductionDeploy, in order.
+
+  - stage: ProductionChecks
+    dependsOn: Package
+    jobs:
+      - job: ReadOnlyChecks
+        pool: { name: <agent-pool> }
+        variables:
+          - group: flyway-production-check   # read-only account: FLYWAY_PRODUCTION_URL, _USER, _PASSWORD
+        steps:
+          - checkout: none
+          - download: current
+            artifact: flyway-package
+          - pwsh: |
+              $ErrorActionPreference = 'Stop'
+              $pkg = "$(Pipeline.Workspace)/flyway-package"
+              if ((Get-FileHash "$pkg/flyway-package.zip" -Algorithm SHA256).Hash -ne (Get-Content "$pkg/flyway-package.sha256")) { throw "Package checksum mismatch" }
+              Expand-Archive "$pkg/flyway-package.zip" -DestinationPath project
+              New-Item -ItemType Directory -Force "$(Build.ArtifactStagingDirectory)/reports" | Out-Null
+            displayName: Verify and unpack
+          - pwsh: |
+              Set-Location project
+              flyway version
+              flyway check -drift "-environment=production" "-check.failOnDrift=true" "-reportFilename=$(Build.ArtifactStagingDirectory)/reports/production-drift"
+              if ($LASTEXITCODE -ne 0) { throw "Drift check failed (exit $LASTEXITCODE)" }
+            displayName: Drift gate (read-only)
+            env: { FLYWAY_EMAIL: $(FLYWAY_EMAIL), FLYWAY_TOKEN: $(FLYWAY_TOKEN), FLYWAY_PRODUCTION_URL: $(FLYWAY_PRODUCTION_URL), FLYWAY_PRODUCTION_USER: $(FLYWAY_PRODUCTION_USER), FLYWAY_PRODUCTION_PASSWORD: $(FLYWAY_PRODUCTION_PASSWORD) }
+          - pwsh: |
+              Set-Location project
+              flyway migrate "-environment=production" "-dryRunOutput=$(Build.ArtifactStagingDirectory)/reports/production-dryrun.sql"
+              if ($LASTEXITCODE -ne 0) { throw "Dry run failed (exit $LASTEXITCODE)" }
+            displayName: Dry-run SQL for the approver (its own step)
+            env: { FLYWAY_EMAIL: $(FLYWAY_EMAIL), FLYWAY_TOKEN: $(FLYWAY_TOKEN), FLYWAY_PRODUCTION_URL: $(FLYWAY_PRODUCTION_URL), FLYWAY_PRODUCTION_USER: $(FLYWAY_PRODUCTION_USER), FLYWAY_PRODUCTION_PASSWORD: $(FLYWAY_PRODUCTION_PASSWORD) }
+          - publish: $(Build.ArtifactStagingDirectory)/reports
+            artifact: production-reports
+            condition: always()
+
+  - stage: ProductionDeploy
+    dependsOn: ProductionChecks
+    jobs:
+      - deployment: Deploy
+        pool: { name: <agent-pool> }
+        environment: production          # approval check configured on this Azure DevOps environment
+        variables:
+          - group: flyway-production-deploy  # deploy account: FLYWAY_PRODUCTION_URL, _USER, _PASSWORD
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: flyway-package
+                - pwsh: |
+                    $ErrorActionPreference = 'Stop'
+                    $pkg = "$(Pipeline.Workspace)/flyway-package"
+                    if ((Get-FileHash "$pkg/flyway-package.zip" -Algorithm SHA256).Hash -ne (Get-Content "$pkg/flyway-package.sha256")) { throw "Package checksum mismatch" }
+                    Expand-Archive "$pkg/flyway-package.zip" -DestinationPath project
+                    New-Item -ItemType Directory -Force "$(Build.ArtifactStagingDirectory)/reports" | Out-Null
+                  displayName: Same package the approver saw
+                - pwsh: |
+                    Set-Location project
+                    flyway check -drift "-environment=production" "-check.failOnDrift=true" "-reportFilename=$(Build.ArtifactStagingDirectory)/reports/production-drift-final"
+                    if ($LASTEXITCODE -ne 0) { throw "Drift found after approval (exit $LASTEXITCODE)" }
+                  displayName: Drift re-check after approval
+                  env: { FLYWAY_EMAIL: $(FLYWAY_EMAIL), FLYWAY_TOKEN: $(FLYWAY_TOKEN), FLYWAY_PRODUCTION_URL: $(FLYWAY_PRODUCTION_URL), FLYWAY_PRODUCTION_USER: $(FLYWAY_PRODUCTION_USER), FLYWAY_PRODUCTION_PASSWORD: $(FLYWAY_PRODUCTION_PASSWORD) }
+                - pwsh: |
+                    Set-Location project
+                    flyway migrate "-environment=production" "-migrate.saveSnapshot=true" "-reportEnabled=true" "-installedBy=$(Build.BuildId)"
+                    if ($LASTEXITCODE -ne 0) { throw "Migrate failed (exit $LASTEXITCODE)" }
+                  displayName: Deploy
+                  env: { FLYWAY_EMAIL: $(FLYWAY_EMAIL), FLYWAY_TOKEN: $(FLYWAY_TOKEN), FLYWAY_PRODUCTION_URL: $(FLYWAY_PRODUCTION_URL), FLYWAY_PRODUCTION_USER: $(FLYWAY_PRODUCTION_USER), FLYWAY_PRODUCTION_PASSWORD: $(FLYWAY_PRODUCTION_PASSWORD) }
+                - pwsh: |
+                    Set-Location project
+                    flyway info "-environment=production"
+                    if ($LASTEXITCODE -ne 0) { throw "info failed (exit $LASTEXITCODE)" }
+                    flyway validate "-environment=production"
+                    if ($LASTEXITCODE -ne 0) { throw "validate failed (exit $LASTEXITCODE)" }
+                  displayName: Post-deployment verification
+                  env: { FLYWAY_EMAIL: $(FLYWAY_EMAIL), FLYWAY_TOKEN: $(FLYWAY_TOKEN), FLYWAY_PRODUCTION_URL: $(FLYWAY_PRODUCTION_URL), FLYWAY_PRODUCTION_USER: $(FLYWAY_PRODUCTION_USER), FLYWAY_PRODUCTION_PASSWORD: $(FLYWAY_PRODUCTION_PASSWORD) }
+                - publish: $(Build.ArtifactStagingDirectory)/reports
+                  artifact: production-deploy-reports
+                  condition: always()
+```
+
+Add the filter file and `callbacks/` to the package if you use them. In the pull request pipeline, run `check -code "-check.code.failOnError=true"` before the build migrate, each check its own step (file 11, section 3).
+
+State-based variant: in the read-only job, run `flyway prepare "-prepare.source=schemaModel" "-prepare.target=production" "-prepare.types=deploy,undo" "-prepare.scriptFilename=deployments/D__production.sql" "-prepare.undoFilename=deployments/DU__production.sql"`, review the script with `check -code` in script scope (file 13), and `publish` the `deployments` folder. In the deployment job, `download: current` that artifact, re-check drift as its own step, then `flyway deploy "-deploy.scriptFilename=$(Pipeline.Workspace)/<artifact>/D__production.sql" "-environment=production" "-deploy.saveSnapshot=true"`. Keep `DU__production.sql` with the release artifacts as the rollback script, and apply file 11, section 6's compare-before-deploy rule.
+
+Known differences in the repository's shipped Azure DevOps pipelines (`AzureDevOps/`), which are standard templates: they run `flyway auth` in CI, pass `-baselineOnMigrate=true` on their migrate steps including Test and Prod, use `FLYWAY_VERSION: "Latest"`, and set the settings `checkDriftOnMigrate` (through the `FLYWAY_CHECK_DRIFT_ON_MIGRATE` variable) and `flywayServicePublish.publishReport`, both deprecated from engine 13.10.0. The GitHub workflows in `.github/workflows/` share all of these except `flyway auth`. Don't copy any of them into new pipelines.
+
+## 16. In daily use
 
 - **Developers:** open a pull request; `validate` runs. A merge deploys to `test`, then `uat`.
 - **Release managers:** start the release workflow with a green run's ID, read the production summary and report, then ask an approver.
 - **DBAs:** watch for drift issues and approvals waiting stale.
 - **Platform owners:** release new versions of the central workflows and track which teams have moved to them.
 
-## 16. Limits
+## 17. Limits
 
 - Fork pull requests get no secrets, so only same-repository pull requests are validated.
 - Private-repository approval gates and Enterprise Server artifact handling depend on your GitHub plan (section 6).
-- `${env.X}` inside a `-configFiles` TOML, whether `-configFiles` adds to `flyway.toml`, the token variable's letter case, and the Key Vault resolver with your runner's identity are for your proof of concept to prove.
+- `-configFiles` adds to the auto-loaded `flyway.toml` (confirmed), and the `${env.X}` resolver works in all Flyway configuration parameters from engine 12.6.2. Still for your proof of concept to prove: the token variable's letter case and the Key Vault resolver with your runner's identity.
 - Artifacts expire; promote within the retention period. The Docker build database is preview.
 - `check -dryrun` shows SQL only; Java migrations and script callbacks appear by name.
 
-## 17. Instructions for the AI assistant using this file
+## 18. Instructions for the AI assistant using this file
 
 - Check the repository, the decision log (file 01) and file 10 for environments, runner labels, GitHub plan and authentication before writing a workflow. If the plan is unknown, ask before promising an approval gate.
 - Use only the actions and inputs in section 3, all `flyway-actions` steps on one version. Never put a license key, password or token in YAML.
-- Map exactly the `${env.X}` variables the loaded `ci/<env>.toml` needs: check account for checks, deploy account for deploys.
+- Map exactly the `${env.X}` variables the selected environment needs: check account for checks, deploy account for deploys. One shared `flyway.toml` works; don't insist on per-environment `ci/<env>.toml` files.
+- In PowerShell steps, quote every dotted argument, check `$LASTEXITCODE` after each call, treat any non-zero code as failure and branch only on 35.
 - Add the Git Bash step as the first step of every job on a Windows runner.
 - Mark every workflow you write as composed and needing a proof of concept. Keep real deployment disabled until `testConnection`, `info` and `check -dryrun` work from the runner.
 - Production deploys only after approval, from a verified tested run, one at a time. Never write a workflow that deploys to production on merge, or one that lets an AI tool deploy.
 - Set `baseline-on-migrate: 'false'` for baselined databases. Never automate `repair`. Run `clean` only on `build`, shadow or scratch databases.
 - On Enterprise Server, don't rely on `flyway-actions` artifact uploads or cross-run downloads; use section 6.
-- For a CI tool other than GitHub Actions, apply file 11's design and say the syntax is outside this file.
+- For Azure DevOps, use section 15: secret variables mapped into each step's `env:`, a deployment job behind an environment approval check, the published artifact deployed unchanged, and a drift re-check after approval. For any other CI tool, apply file 11's design and say the syntax is outside this file.
 - Answer in the language the person writes in. Keep commands, keys, file names and error text in English.

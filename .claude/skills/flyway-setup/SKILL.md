@@ -153,6 +153,12 @@ flyway diff model "-diff.source=development" "-diff.target=schemaModel"
 ```
 Summarise in plain words: roughly how many tables, views and procedures, and anything odd (for complex databases, objects that reference other databases or linked servers). Ask: "Does that look right? Anything Flyway should ignore, like another team's schema?" If yes, add it to `Filter.scpf` and run it again. If nothing was captured, Dev has no tables, so go back and fix the source. Never create objects yourself.
 
+**SQL Server: permissions and made-up names.** Watch for two kinds of noise, here and in every later comparison:
+- `GRANT` or `DENY` permissions they didn't expect. Permissions usually differ between Dev, Test and Prod, and a DBA or a separate script manages them.
+- Differences where only a constraint or index name differs, like `DF__Orders__Creat__19B5BC39`. SQL Server makes these names up when a constraint is created without one, so they differ in every database. Naming constraints explicitly is the long-term fix.
+
+If either shows up, offer to have Flyway ignore it. With their OK, set `ignorePermissions` or `ignoreSystemNamedConstraintAndIndexNames` to `true` under `[redgateCompare.sqlserver.options.ignores]` in `flyway.toml`, then run the comparison again. Users and role memberships are already ignored.
+
 (If the Flyway MCP server is connected, you may use its develop-migrations tools for this and step 8 instead.)
 
 ## 7. Set the baseline
@@ -185,6 +191,7 @@ If something fails, follow the troubleshoot skill. Common causes: invalid object
 Don't walk them through the commands one by one. Say: "If you want to test out the workflows, here is a sequence of commands you can test out: https://documentation.red-gate.com/fd/flyway-poc-worfkflow-325421946.html"
 - Add one line on what fits their project: the target here is `Test`, where the page uses `test`, and the `target` and `cherryPick` versions are their own, such as `002`.
 - They run the commands themselves.
+- If they deploy from Flyway Desktop, warn them in one sentence first: if Desktop offers to "baseline and continue", stop and tell you rather than accept it. Test and Prod are already baselined, so that prompt means Desktop can't see their history, and accepting it could baseline at the wrong version (library file 08, section 18). If it appears, treat it as a problem and follow the troubleshoot skill.
 - If they ask about one, explain it.
 
 **In the same message, offer Flyway Desktop,** because the page works in it. First find out whether it's installed: on Windows, run the lookup below; on macOS or Linux, ask. Then offer the right thing:

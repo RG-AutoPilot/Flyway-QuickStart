@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 15 of 31
+Flyway Enterprise AI library - file 15 of 32
 The operations workflow - DBA release duties, emergency changes and daily runbooks
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -94,7 +94,7 @@ flyway check -dryrun -environment=production -configFiles=ci/production-check.to
 flyway check -drift "-check.failOnDrift=true" -environment=production -configFiles=ci/production-check.toml
 ```
 
-Run drift as its own command. Redgate's docs say a chained verb keeps running after a `failOnDrift` error. In PowerShell, wrap arguments that contain a period in quotes. Each step loads only its own small `ci/<environment>.toml` (file 10).
+Run drift as its own command. Redgate's docs say a chained verb keeps running after a `failOnDrift` error. In PowerShell, wrap arguments that contain a period in quotes. The `-configFiles` file here is optional: it loads in addition to the project's `flyway.toml` and is one way to give the check steps the read-only account. One shared `flyway.toml` holding every environment's `${env.X}` references also works, because Flyway resolves only the selected environment's variables (file 10).
 
 During:
 7. The reviewer approves the `production` environment in GitHub. One run at a time.
@@ -154,7 +154,7 @@ Restore a production-like copy under your approved process. How that copy is pro
 
 Four sources. Use the first two for what Flyway deployed, the last two for what it didn't.
 
-1. `flyway info -environment=uat -infoSinceDate="dd/MM/yyyy HH:mm"` lists migrations applied after that date, plus any pending ones. Redgate's Info page requires exactly that format, for example `"01/12/2020 13:00"`, and offers `-infoUntilDate` in the same format to close the window. Add `-outputType=json` to get, per migration, `version`, `description`, `type`, `state`, `installedOnUTC`, `installedBy`, `executionTime` and `filepath`.
+1. `flyway info -environment=uat -infoSinceDate="dd/MM/yyyy HH:mm"` lists migrations applied after that date, plus any pending ones. Redgate's Info page requires exactly that format, for example `"01/12/2020 13:00"`, and offers `-infoUntilDate` in the same format to close the window. To narrow by version or state instead, `info` also takes `-infoSinceVersion`, `-infoUntilVersion` and `-infoOfState`. Add `-outputType=json` to get, per migration, `version`, `description`, `type`, `state`, `installedOnUTC`, `installedBy`, `executionTime` and `filepath`.
 2. The schema history table, read directly with the read-only account. Redgate's pages don't list its columns, so the names below are the ones Flyway creates; check them against your own table first. The table name (`table` setting) and its schema (`defaultSchema`) are configurable:
 
 > Not from Redgate docs — starting point, validate in your environment.

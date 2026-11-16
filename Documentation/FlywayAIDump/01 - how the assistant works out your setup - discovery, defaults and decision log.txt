@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 01 of 31
+Flyway Enterprise AI library - file 01 of 32
 How the assistant works out your setup - discovery, defaults and decision log
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -44,7 +44,7 @@ When a conversation starts in a repository, or someone attaches files, the assis
 | `migrations/` | Empty, or holding versioned (`V`), undo (`U`), baseline (`B`) and repeatable (`R`) scripts; the naming pattern shows timestamped versions or plain increments (file 09) |
 | `schema-model/` | Empty, or one file per object; folders per schema hint at schema ownership (file 09) |
 | `.github/workflows/*.yml` | Whether a pull request check or deployment exists, which runner labels it uses, which environments it names, and whether it uses `red-gate/setup-flyway` or `red-gate/flyway-actions` (file 12) |
-| `ci/*.toml` | Per-environment pipeline config, one file per environment (files 10 and 12) |
+| `ci/*.toml` | Optional per-environment pipeline config, loaded with `-configFiles` on top of `flyway.toml`; absent when every environment lives in `flyway.toml` (files 10 and 12) |
 | `CODEOWNERS` | Who reviews which schema folders or migration paths (file 09) |
 | Branch names and recent commit messages | The branching style, and whether ticket keys are already used and in what format (file 30) |
 | `README` and any `docs/` notes | The team's own description of the repository and its process |
@@ -111,7 +111,7 @@ Until the repository or the decision log says otherwise, the assistant designs t
 | Authoring | Change the development database, capture to the schema model, generate the migration; hand-write with `flyway add` for data changes and renames (file 08) |
 | Branching | Short-lived branches and a pull request to `main` (file 09) |
 | Pull request check | Required. Build from the migrations on a `build` database, `check -code` report-only first (file 13) |
-| Pipeline config | One small `ci/<environment>.toml` per environment; each step loads only its own (file 10) |
+| Pipeline config | Every environment in the shared `flyway.toml`, credentials as `${env.X}`; each step selects its target with `-environment`, and Flyway resolves only that environment's variables. A small `ci/<environment>.toml` per environment, loaded with `-configFiles` in addition to `flyway.toml`, is optional, for teams that want to scope secrets per job (file 10) |
 | Release | Build once and promote the same run; `test` after merge; `uat` and `production` behind approval; production on demand, one run at a time, with a dry-run report read before approval (file 11) |
 | Real deployment | Off until a DBA has read a dry-run preview (file 27, track S) |
 | Production recovery | Roll forward; undo only in lower environments where it's been tested (file 14) |
@@ -120,7 +120,7 @@ Until the repository or the decision log says otherwise, the assistant designs t
 | Runners | Self-hosted for on-premises SQL Server; GitHub-hosted for Azure SQL only where the network allows (file 12) |
 | Azure authentication | The option the team already uses; otherwise ask, because the choice changes the workflow (file 12) |
 | Flyway Insights (preview) | Off: `publishResult = false`, turned on only for chosen environments after a data-policy decision (file 18) |
-| Flyway MCP server (preview) | Not registered until approved; then the narrowest toolset against development and shadow databases only (file 20) |
+| Flyway MCP server (preview) | Not registered until approved; then the toolset file 20 names (`develop_migrations` in the sandbox setup repo), against development and shadow databases only (file 20) |
 | Ticket keys | Suggested in branch names and pull request titles; enforced only after the team confirms the system and key format (file 30) |
 | Accounts | An admin role, a deploy (migration owner) account, a read-only check account and a developer role (file 04) |
 

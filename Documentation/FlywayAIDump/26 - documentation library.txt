@@ -1,8 +1,8 @@
-Flyway Enterprise AI library - file 26 of 31
+Flyway Enterprise AI library - file 26 of 32
 Documentation library
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
-What this covers: Redgate, Microsoft and GitHub documentation pages grouped by the job you're doing, in the order of the library's files. Every link in sections 1 to 18 was opened on 19 October 2026 and loaded with content on the stated topic, except the one listed as unchecked at the end of section 17; the SSMS pages in section 14, the ticketing links at the end of section 12 and the further reading in section 19 were checked on 20 October 2026. Section 19 adds Product Learning articles and Redgate sample repositories by situation, with older articles labelled. Where a page moved, the address given is where it landed. If your AI tool can't open links, these are for a person to open. Nothing else in the library depends on fetching them.
+What this covers: Redgate, Microsoft and GitHub documentation pages grouped by the job you're doing, in the order of the library's files. Every link in sections 1 to 18 was opened on 19 October 2026 and loaded with content on the stated topic, except the one listed as unchecked at the end of section 17; the SSMS pages in section 14, the ticketing links at the end of section 12 and the further reading in section 19 were checked on 20 October 2026. Section 19 adds Product Learning articles and Redgate sample repositories by situation, with older articles labelled. Pages added on 10 November 2026 (the configuration, dry-run and snapshot settings, the API (Java) page, the roadmap, and the file 31 group at the end of section 5) were opened that day, except the entries marked "from the source list", which weren't re-opened. Addresses on the older `/fd/...` form were moved to the `/flyway/...` form where that page was confirmed to load. Where a page moved, the address given is where it landed. If your AI tool can't open links, these are for a person to open. Nothing else in the library depends on fetching them.
 
 Not in this file: Explanations (each topic has a numbered file; file 00 routes you). Versions and preview status (file 25).
 
@@ -11,7 +11,7 @@ Contents:
 2. Install, licensing and authentication (file 04)
 3. Configuration, environments and secrets (file 10)
 4. SQL Server and Azure SQL (files 07, 10, 23)
-5. Moving off a script runner and SQL projects (files 06, 07)
+5. Moving off a script runner, SQL projects, SQL Change Automation and SQL Source Control (files 06, 07, 31)
 6. Developer workflows and the schema model (files 08, 09)
 7. Commands, one page each (all files)
 8. Code review and database tests (file 13)
@@ -56,9 +56,10 @@ Contents:
 - Personal access tokens tutorial: https://documentation.red-gate.com/flyway/reference/tutorials/tutorial-personal-access-tokens
 - Offline permit licensing in GitHub Actions: https://documentation.red-gate.com/flyway/reference/tutorials/tutorial-offline-permit-licensing-in-github-actions
 - auth command: https://documentation.red-gate.com/flyway/reference/commands/auth
-- `email` setting (`FLYWAY_EMAIL`): https://documentation.red-gate.com/fd/flyway-email-setting-277578993.html
-- `token` setting (`FLYWAY_TOKEN`): https://documentation.red-gate.com/fd/flyway-token-setting-277579045.html
-- Offline permit path setting: https://documentation.red-gate.com/fd/flyway-offline-permit-path-setting-314869837.html
+- `email` setting (`FLYWAY_EMAIL`): https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-email-setting
+- `token` setting (`FLYWAY_TOKEN`): https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-token-setting
+- Offline permit path setting: https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-offline-permit-path-setting
+- API (Java) (programmatic use and supported Java versions; the CLI bundles its own runtime): https://documentation.red-gate.com/flyway/reference/usage/api-java
 - Environment variables (including the proxy flag): https://documentation.red-gate.com/flyway/reference/environment-variables
 - Security configuration (TLS, truststores): https://documentation.red-gate.com/flyway/reference/configuration/security-configuration
 - Connecting to production environments: https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/connecting-to-production-environments
@@ -66,20 +67,22 @@ Contents:
 ## 3. Configuration, environments and secrets (file 10)
 
 - Configuration precedence: https://documentation.red-gate.com/flyway/reference/configuration-precedence
+- `configFiles` parameter (files load in addition to those loaded automatically; file 10 records the test that confirmed it): https://documentation.red-gate.com/flyway/reference/command-line-parameters/config-files-parameter
+- Configuration namespaces (full namespaces, and the short forms allowed directly after the verb): https://documentation.red-gate.com/flyway/flyway-concepts/flyway-projects/configuration-namespaces
 - Flyway namespace (engine settings): https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace
 - Environments namespace: https://documentation.red-gate.com/flyway/reference/configuration/environments-namespace
-- Environment overrides: https://documentation.red-gate.com/flyway/reference/configuration/environment-overrides
+- Environment overrides (what `[environments.<name>.flyway]` and other namespaces can override per environment): https://documentation.red-gate.com/flyway/reference/configuration/environment-overrides
 - Editing TOML: https://documentation.red-gate.com/flyway/learn-more-about-flyway/how-to-articles/tutorial-editing-toml
 - Secrets management: https://documentation.red-gate.com/flyway/flyway-concepts/secrets-management
 - Resolvers (concept): https://documentation.red-gate.com/flyway/flyway-concepts/environments/resolvers
-- Environment variable resolver (`${env.NAME}`): https://documentation.red-gate.com/fd/environment-variable-resolver-277578943.html
+- Environment variable resolver (`${env.NAME}`): https://documentation.red-gate.com/flyway/reference/configuration/environments-namespace/environment-resolvers-namespace/environment-variable-resolver
 - Azure Key Vault resolver: https://documentation.red-gate.com/flyway/reference/configuration/environments-namespace/environment-resolvers-namespace/azure-key-vault-resolver
 - Microsoft, Key Vault role-based access (Key Vault Secrets User): https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide
 - Storing and retrieving credentials: https://documentation.red-gate.com/flyway/database-development-using-flyway/storing-and-retrieving-credentials
 - Connecting to environments: https://documentation.red-gate.com/flyway/database-development-using-flyway/connecting-to-environments
 - Migration placeholders: https://documentation.red-gate.com/flyway/flyway-concepts/migrations/migration-placeholders
 - Shadow and build environments: https://documentation.red-gate.com/flyway/flyway-concepts/environments/shadow-and-build-environments
-- Development database environment configuration (dedicated vs shared development databases; Azure SQL serverless, elastic pools and local shadows): https://documentation.red-gate.com/fd/development-database-environment-configuration-138346960.html
+- Development database environment configuration (dedicated vs shared development databases; Azure SQL serverless, elastic pools and local shadows): https://documentation.red-gate.com/flyway/database-development-using-flyway/database-devops-practices/development-database-environment-configuration
 
 ## 4. SQL Server and Azure SQL (files 07, 10, 23)
 
@@ -99,7 +102,7 @@ Contents:
 - Microsoft, DBCC CLONEDATABASE (schema-only copy; read the page for options and platform limits): https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-clonedatabase-transact-sql
 - Microsoft, SQL Server on Linux containers: https://learn.microsoft.com/en-us/sql/linux/install-upgrade/quickstart-install-docker
 
-## 5. Moving off a script runner and SQL projects (files 06, 07)
+## 5. Moving off a script runner, SQL projects, SQL Change Automation and SQL Source Control (files 06, 07, 31)
 
 - Baselines: https://documentation.red-gate.com/flyway/flyway-concepts/baselines
 - Baselining downstream environments: https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/baselining-your-downstream-environments
@@ -113,6 +116,25 @@ Contents:
 - Microsoft, SqlPackage DeployReport and DriftReport: https://learn.microsoft.com/en-us/sql/tools/sqlpackage/sqlpackage-deploy-drift-report
 - Microsoft, SQL database projects: https://learn.microsoft.com/en-us/sql/tools/sql-database-projects/sql-database-projects
 - SQL Compare, using a DACPAC as a data source (beta): https://documentation.red-gate.com/sc16/working-with-other-data-sources/using-a-dacpac-as-a-data-source
+
+Moving off SQL Change Automation and SQL Source Control (file 31):
+- Transitioning from other Redgate tools: https://documentation.red-gate.com/flyway/getting-started-with-flyway/transitioning-from-other-redgate-tools
+- Transitioning from SQL Change Automation: https://documentation.red-gate.com/flyway/getting-started-with-flyway/transitioning-from-other-redgate-tools/sql-change-automation
+- Transitioning from SQL Source Control: https://documentation.red-gate.com/flyway/getting-started-with-flyway/transitioning-from-other-redgate-tools/sql-source-control
+- The journey to Flyway: https://documentation.red-gate.com/flyway/getting-started-with-flyway/transitioning-from-other-redgate-tools/the-journey-to-flyway
+- Transition license information (a licensing question for your Redgate account team): https://documentation.red-gate.com/flyway/getting-started-with-flyway/transitioning-from-other-redgate-tools/transition-license-information
+- Deploying after the move: https://documentation.red-gate.com/flyway/getting-started-with-flyway/transitioning-from-other-redgate-tools/deploying
+- Importing projects from other Redgate tools: https://documentation.red-gate.com/flyway/database-development-using-flyway/importing-projects-from-other-redgate-tools
+- Tutorial, import projects from SQL Source Control (Desktop's Import project, and the `init` command alternative): https://documentation.red-gate.com/flyway/getting-started-with-flyway/transitioning-from-other-redgate-tools/sql-source-control/tutorial-import-projects-from-sql-source-control
+- SQL Change Automation support status (retired from sale, still supported and maintained): https://www.red-gate.com/products/sql-change-automation/support/
+- SQL Change Automation 5 documentation home: https://documentation.red-gate.com/sca
+- SQL Change Automation PowerShell cmdlets (for mapping each cmdlet to a Flyway command): https://documentation.red-gate.com/sca/reference/powershell-cmdlets
+- SQL Change Automation concepts, from the source list: https://documentation.red-gate.com/sca/developing-databases/concepts, projects https://documentation.red-gate.com/sca/developing-databases/concepts/projects, migration scripts https://documentation.red-gate.com/sca/developing-databases/concepts/migrations/migration-scripts, programmable objects https://documentation.red-gate.com/sca/developing-databases/concepts/migrations/programmable-objects, pre- and post-deployment scripts https://documentation.red-gate.com/sca/developing-databases/concepts/migrations/pre-deployment-and-post-deployment-scripts, offline schema model https://documentation.red-gate.com/sca/developing-databases/concepts/offline-schema-model, variables https://documentation.red-gate.com/sca/developing-databases/concepts/advanced-concepts/variables, baseline https://documentation.red-gate.com/sca/developing-databases/concepts/baseline
+- SQL Change Automation add-ons, from the source list: https://documentation.red-gate.com/sca/deploying-database-changes/add-ons
+- SQL Change Automation SSMS extension, applying changes to a database, from the source list: https://documentation.red-gate.com/scas/working-with-the-ssms-extension/apply-changes-to-a-database
+- SQL Source Control 8 documentation home: https://documentation.red-gate.com/soc
+- Redgate Clone provisioner (deprecated; the backup provisioner (preview) replaces SQL Clone baselines), from the source list: https://documentation.red-gate.com/fd/redgate-clone-provisioner-277578939.html
+- Flyway migrations concept (versioned, repeatable and baseline scripts, for mapping SCA's programmable objects): https://documentation.red-gate.com/flyway/flyway-concepts/migrations
 
 ## 6. Developer workflows and the schema model (files 08, 09)
 
@@ -177,10 +199,11 @@ The catalog lists no `diffApply` page and no plain `test` command page; `testCon
 - Redgate SQLFluff rules library: https://documentation.red-gate.com/flyway/reference/code-review-rules/redgate-sqlfluff-rules-library
 - Configuring SQLFluff rules: https://documentation.red-gate.com/flyway/reference/code-review-rules/configuring-sqlfluff-rules
 - Configuring custom SQLFluff rules: https://documentation.red-gate.com/flyway/reference/code-review-rules/configuring-custom-sqlfluff-rules
-- Check namespace: https://documentation.red-gate.com/fd/flyway-check-namespace-277578979.html
+- Check namespace: https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-check-namespace
 - `check.code.failOnError` setting: https://documentation.red-gate.com/fd/flyway-check-code-fail-on-error-setting-311656646.html
 - Check error codes: https://documentation.red-gate.com/flyway/reference/exit-codes-and-error-codes/check-error-codes
 - Dry runs tutorial: https://documentation.red-gate.com/flyway/reference/tutorials/tutorial-dry-runs
+- `dryRunOutput` setting (the file the dry-run SQL goes to; in a multi-command run only the first command is recorded, so run `migrate` on its own for a SQL file): https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-dry-run-output-setting
 - Reviewing the deployment script ahead of deployment: https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/reviewing-deployment-script-ahead-of-deployment
 - Generating a deployment changes report: https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/generating-a-deployment-changes-report
 - Database unit testing (tSQLt; the page is dated and uses older configuration formats): https://documentation.red-gate.com/flyway/learn-more-about-flyway/database-unit-testing
@@ -191,8 +214,9 @@ The catalog lists no `diffApply` page and no plain `test` command page; `testCon
 - Checking production environments for drift: https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/checking-production-environments-for-drift
 - Drift analysis concept: https://documentation.red-gate.com/flyway/flyway-concepts/drift-analysis
 - Snapshots concept: https://documentation.red-gate.com/flyway/flyway-concepts/snapshots
-- `deploy.saveSnapshot` setting: https://documentation.red-gate.com/fd/flyway-deploy-save-snapshot-setting-317493912.html
-- Snapshot namespace (history limit): https://documentation.red-gate.com/fd/flyway-snapshot-namespace-277579036.html
+- `deploy.saveSnapshot` setting: https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-deploy-namespace/flyway-deploy-save-snapshot-setting
+- `check.deployedSnapshot` setting (a plain path is read as a file; the default is `snapshotHistory:current`): https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-check-namespace/flyway-check-deployed-snapshot-setting
+- Snapshot namespace (history limit): https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-snapshot-namespace
 - Implementing a rollback strategy: https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/implementing-a-roll-back-strategy
 - Roll back using undo migrations: https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/implementing-a-roll-back-strategy/tutorial-roll-back-using-undo-migrations
 - Undo migrations concept: https://documentation.red-gate.com/flyway/flyway-concepts/migrations/undo-migrations
@@ -205,7 +229,7 @@ The catalog lists no `diffApply` page and no plain `test` command page; `testCon
 ## 10. Provisioners, static data and test databases (file 16)
 
 - Provisioning: https://documentation.red-gate.com/flyway/flyway-concepts/environments/provisioning
-- Provisioner setting: https://documentation.red-gate.com/fd/environment-provisioner-setting-277578930.html
+- Provisioner setting: https://documentation.red-gate.com/flyway/reference/configuration/environments-namespace/environment-provisioner-setting
 - Clean provisioner: https://documentation.red-gate.com/flyway/reference/configuration/environments-namespace/environment-provisioner-setting/clean-provisioner
 - Create database provisioner (preview): https://documentation.red-gate.com/fd/create-database-provisioner-291931544.html
 - Docker provisioner (preview): https://documentation.red-gate.com/fd/docker-provisioner-277578938.html
@@ -224,8 +248,8 @@ The catalog lists no `diffApply` page and no plain `test` command page; `testCon
 - Common state-based deployment scripts: https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/automating-deployment-using-a-ci-cd-tool/common-state-based-deployment-scripts
 - GitHub example, migrations-based (a short page pointing to the official actions): https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/automating-deployment-using-a-ci-cd-tool/example-migrations-based-ci-cd-pipelines/github
 - GitHub Actions example, state-based (a short page pointing to the official actions): https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/automating-deployment-using-a-ci-cd-tool/example-state-based-ci-cd-pipelines/github-actions
-- Generate a GitHub Actions workflow from Flyway Desktop: https://documentation.red-gate.com/fd/tutorial-generate-a-github-actions-deployment-workflow-with-flyway-desktop-342852947.html
-- Rolling out updates to several databases (no built-in "deploy to many"): https://documentation.red-gate.com/fd/rolling-out-updates-from-a-single-schema-to-multiple-production-databases-342852150.html
+- Generate a GitHub Actions workflow from Flyway Desktop: https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/automating-deployment-using-a-ci-cd-tool/tutorial-generate-a-github-actions-deployment-workflow-with-flyway-desktop
+- Rolling out updates to several databases (no built-in "deploy to many"): https://documentation.red-gate.com/flyway/deploying-database-changes-using-flyway/rolling-out-updates-from-a-single-schema-to-multiple-production-databases
 - `red-gate/setup-flyway` (installs and licenses the CLI; inputs include version, edition, email and token): https://github.com/red-gate/setup-flyway
 - `red-gate/flyway-actions` (checks, deploy, generate, undo, state prepare and deploy): https://github.com/red-gate/flyway-actions
 - flyway-actions deployment usage examples: https://github.com/red-gate/flyway-actions/blob/main/docs/deployment-usage-examples.md
@@ -265,23 +289,23 @@ Ticketing and change requests (file 30, which says which vendor details to confi
 
 Read the security page before enabling anything.
 
-- Flyway Insights: https://documentation.red-gate.com/fd/flyway-insights-367919120.html
+- Flyway Insights: https://documentation.red-gate.com/flyway/flyway-insights
 - Security, hosting and data: https://documentation.red-gate.com/flyway/flyway-insights/security-hosting-and-data
 - Get started: https://documentation.red-gate.com/flyway/flyway-insights/get-started-with-flyway-insights
-- Deployments: https://documentation.red-gate.com/flyway/flyway-insights/deployments
+- Deployments (only migrations-based deployments are shown here; DORA and ROI pages include both kinds): https://documentation.red-gate.com/flyway/flyway-insights/deployments
 - DORA metrics: https://documentation.red-gate.com/flyway/flyway-insights/dora-metrics
 - Business value: https://documentation.red-gate.com/flyway/flyway-insights/business-value-roi
 - Sharing with your organization: https://documentation.red-gate.com/flyway/flyway-insights/sharing-with-your-organization
-- `publishResult` setting (the page still uses the old name, Flyway Pipelines): https://documentation.red-gate.com/fd/flyway-publish-result-setting-277579025.html
-- `pipelineId` setting (`[flyway]`, `FLYWAY_PIPELINE_ID`): https://documentation.red-gate.com/fd/flyway-pipeline-id-setting-277579017.html
+- `publishResult` setting (the page still uses the old name, Flyway Pipelines): https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-publish-result-setting
+- `pipelineId` setting (`[flyway]`, `FLYWAY_PIPELINE_ID`): https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-pipeline-id-setting
 - Redgate Trust Center: https://www.red-gate.com/trust/
 - Subprocessors: https://www.red-gate.com/trust/saas-subprocessors/
 
 ## 14. AI features and the MCP server (preview) (files 03, 20, 21)
 
 - AI services in Flyway: https://documentation.red-gate.com/flyway/ai-services-in-flyway
-- Flyway MCP server: https://documentation.red-gate.com/fd/flyway-mcp-server-350192418.html
-- MCP server configuration (toolsets): https://documentation.red-gate.com/flyway/reference/usage/flyway-mcp-server/mcp-server-configuration
+- Flyway MCP server: https://documentation.red-gate.com/flyway/reference/usage/flyway-mcp-server
+- MCP server configuration (toolsets; `-mcp.toolsets` is required and has no default):https://documentation.red-gate.com/flyway/reference/usage/flyway-mcp-server/mcp-server-configuration
 - MCP tool reference: https://documentation.red-gate.com/flyway/reference/usage/flyway-mcp-server/tool-reference
 - Register the MCP server with your AI tools: https://documentation.red-gate.com/flyway/reference/usage/flyway-mcp-server/register-with-your-ai-tools
 - MCP server troubleshooting: https://documentation.red-gate.com/fd/mcp-server-troubleshooting-370509540.html
@@ -362,6 +386,7 @@ Unchecked: the Redgate AI trust hub at https://ai.redgate.cloud/hub/trust return
 - SQL Data Compare: https://documentation.red-gate.com/sdc16/release-notes-and-other-versions/sql-data-compare-16-1-release-notes
 - SQL Prompt: https://documentation.red-gate.com/sp11/release-notes-and-other-versions/sql-prompt-11-5-release-notes
 - Flyway blog index: https://documentation.red-gate.com/flyway/flyway-blog
+- Flyway roadmap (planned and in-development items; roadmap, not released, so never quote it as a shipped feature): https://www.red-gate.com/products/flyway/roadmap/
 
 ## 19. Further reading by situation (files 06, 08, 09, 11 to 16, 28, 29)
 

@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 28 of 31
+Flyway Enterprise AI library - file 28 of 32
 Workflow architect - designing dev to PR to operations to pipeline for each team
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -81,7 +81,7 @@ Every route below produces the same files: a `schema-model/` folder of one file 
 | VS Code task buttons running Flyway through PowerShell | Developer in VS Code | VS Code users who want one-click steps | Commit `.vscode/tasks.json`, keep credentials out of it; tasks are in file 08 |
 | Schema-model-first editing, then apply to development | Developer on a dedicated database | Narrow cases, see below | Re-capture must show no differences |
 | Generated in the pull request or pipeline (hybrid) | A pipeline job, from the committed schema model | Developers who shouldn't need Flyway tooling; SSDT or ORM teams | One generator at a time; data steps hand-written |
-| Flyway MCP server (preview) in an AI tool | Developer with an AI agent | Teams already using AI coding agents | Narrowest toolset, a person reviews every diff and script, dev and shadow only (file 20) |
+| Flyway MCP server (preview) in an AI tool | Developer with an AI agent | Teams already using AI coding agents | The toolset file 20 names, a person reviews every diff and script, dev and shadow only (file 20) |
 | Hand-written with `flyway add` | Developer | Data motion, renames, splits, online index work | Save the schema model afterwards so model and migrations agree |
 | Regenerate fresh | Developer, before merge | A generated script that's wrong or stale | Only for scripts no shared environment has run |
 
@@ -110,7 +110,7 @@ If a generated migration is wrong, or `main` moved underneath it, and no shared 
 | Area | Standardize | Team may choose |
 |---|---|---|
 | Versioning | One timestamp-based scheme, `validateMigrationNaming = true` (file 09) | Folder per release inside `migrations/` |
-| Project layout | `flyway.toml` committed, `flyway.user.toml` ignored, one small `ci/<environment>.toml` per environment (file 10) | Where the project sits in the repository |
+| Project layout | `flyway.toml` committed with every environment in it (credentials as `${env.X}`; only the selected environment's variables are resolved), `flyway.user.toml` ignored (file 10) | Where the project sits in the repository; optional `ci/<environment>.toml` files, loaded with `-configFiles` on top of `flyway.toml`, to scope secrets per job |
 | Required pull request checks | Build from scratch on a build database, collision check, code review, change report | Extra rules on top |
 | Pipeline stages and gates | One reusable workflow: validate, package once, test, UAT, production on demand behind approval | Trigger paths, project parameters |
 | Operations hand-off | The contract below | Notification channel |
@@ -267,7 +267,7 @@ release: Core -> Orders -> Reporting, each backward-compatible (expand, then con
 
 Steps: one Flyway project per database, each with its own history. Put shadows on the same instance as the databases they reference so three-part names resolve (https://documentation.red-gate.com/flyway/flyway-concepts/environments/shadow-and-build-environments). The release deploys providers before consumers, and each change stays backward-compatible so a wrong order doesn't break anything (https://www.red-gate.com/hub/product-learning/flyway/shared-database-blue-green-deployments/). Linked server names that differ per environment go in placeholders (https://documentation.red-gate.com/flyway/reference/tutorials/tutorial-using-placeholders-in-sql-migration-scripts-for-linked-servers). Mutually dependent databases need the pattern in Redgate's article on them (https://www.red-gate.com/hub/product-learning/flyway/dealing-with-mutually-dependent-databases-in-flyway); it predates TOML configuration, so translate its syntax.
 
-GitHub Actions jobs: a matrix or ordered jobs per project (`deploy-core`, then `deploy-orders`, then `deploy-reporting`), each with its own `ci/<environment>.toml`.
+GitHub Actions jobs: a matrix or ordered jobs per project (`deploy-core`, then `deploy-orders`, then `deploy-reporting`), each pointing at its own project's `flyway.toml` with `-environment` (plus that project's `ci/<environment>.toml` if the team keeps them).
 
 Who approves: one production approval covers the ordered set, so the approver sees every project's preview.
 
@@ -282,7 +282,7 @@ Failure modes: shadow builds fail because a referenced database is missing; circ
 | Timestamps removed "for readability" | Parallel branches collide on plain numbers | Keep one timestamp scheme (file 09) |
 | `validateMigrationNaming` left at its default | A misnamed file is skipped silently | Set it to `true` |
 | `*:ignored` to turn a build green | The migration never runs anywhere | Fix the order; a reviewed one-off `-outOfOrder=true` run |
-| `repair` in a pipeline | Validation can never fail; history stops being evidence | A person runs `repair` after diagnosis (file 22) |
+| `repair` in a pipeline | Validation can never fail; history stops being evidence | A person runs `repair` after diagnosis, once per environment and only in the cases files 14 and 22 allow, never from a pipeline |
 | Migrations rebuilt per environment or deployed from a branch | What ran in production isn't what was tested | Package once, deploy that SHA everywhere |
 | Procedures dropped and recreated in versioned scripts | Every bug fix costs a new version forever | Repeatable migrations for programmable objects |
 | `baselineOnMigrate` left on in committed config or action inputs | Masks a wrong-target connection by baselining it | Baseline once, deliberately, per brownfield target; check the deploy action's input default (file 12) |

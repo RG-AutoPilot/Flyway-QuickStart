@@ -1,10 +1,10 @@
-Flyway Enterprise AI library - file 00 of 31
+Flyway Enterprise AI library - file 00 of 32
 START HERE: index, AI setup and operating rules
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
-What this covers: The entry point to a 31-file library about Flyway Enterprise on SQL Server (on-premises, Azure SQL Database and Azure SQL Managed Instance) with GitHub and GitHub Actions. Section 1 is a short note for the people setting it up. The rest is for the assistant: the instruction block to paste into your AI tool, where that block goes in each tool, the rules the assistant follows, and a table that routes every question to one or two files.
+What this covers: The entry point to a 32-file library about Flyway Enterprise on SQL Server (on-premises, Azure SQL Database and Azure SQL Managed Instance) with GitHub and GitHub Actions. Section 1 is a short note for the people setting it up. The rest is for the assistant: the instruction block to paste into your AI tool, where that block goes in each tool, the rules the assistant follows, and a table that routes every question to one or two files.
 
-Not in this file: How the assistant works out your setup (file 01). Product facts and commands (files 02 to 26). Designing workflows (file 28) and scenario playbooks (file 29). Modes and guided tracks (file 27). Detailed setup for approved, private and local AI tools (file 03).
+Not in this file: How the assistant works out your setup (file 01). Product facts and commands (files 02 to 26). Designing workflows (file 28) and scenario playbooks (file 29). Modes and guided tracks (file 27). Detailed setup for approved, private and local AI tools (file 03). Moving off SQL Change Automation or SQL Source Control (file 31).
 
 Contents:
 1. For people: what this is and how to set it up
@@ -20,7 +20,7 @@ Contents:
 
 ## 1. For people: what this is and how to set it up
 
-The Flyway Library is 31 reference files, numbered 00 to 30, plus `manifest.json`. They're written for your AI assistant, so it answers Flyway questions from current, checked guidance instead of guessing from training data, and helps your teams design how database changes move from a developer to production.
+The Flyway Library is 32 reference files, numbered 00 to 31, plus `manifest.json`. They're written for your AI assistant, so it answers Flyway questions from current, checked guidance instead of guessing from training data, and helps your teams design how database changes move from a developer to production.
 
 There's nothing to fill in. The assistant reads your repository to work out your setup and asks a short question only when it needs to (file 01).
 
@@ -31,9 +31,9 @@ Set it up in four steps:
 3. Make the folder available to the tool: open the repository, attach the files, or add them as the tool's knowledge (section 4 and file 03).
 4. Ask: "What can you do with the Flyway Library?" A good answer shows a menu of modes from file 27 and names a library file. A generic answer about Flyway means the instructions didn't load; check step 2.
 
-Good habits: never paste production data, connection strings or secrets into a prompt (if you do, rotate the secret). Ask which file an answer came from. Test anything marked "Not from Redgate docs" on a sandbox first. The assistant never connects to your databases or deploys anything.
+Good habits: never paste production data, connection strings or secrets into a prompt (if you do, rotate the secret). Ask which file an answer came from. Test anything marked "Not from Redgate docs" on a sandbox first. The assistant never deploys anything, and it doesn't connect to your databases; the only exception is the sandbox setup repo below, and only for `development` and `shadow`.
 
-Sandbox setup repo: if you are in the Flyway Setup Sandbox repository, this library sits beside a setup skill (`.claude/skills/flyway-setup/SKILL.md`) and a decision log (`Documentation/project-profile.md`). Start with the skill: it runs a guided setup on structure-only copies of your own SQL Server or Oracle database, then has you try deploy, check, drift and undo, and uses this library for detail. In that repo the assistant may run the Flyway CLI (or the Flyway MCP server) against the `development` and `shadow` environments only; everything else in this file still applies. The repo is for building and testing Flyway, not for real databases: for real use, rebuild the project with your DBAs using design mode (file 28).
+Sandbox setup repo: if you are in the Flyway Setup Sandbox repository, this library sits beside a setup skill (`.claude/skills/flyway-setup/SKILL.md`) and a decision log (`Documentation/project-profile.md`). Start with the skill: it runs a guided setup on structure-only copies of your own SQL Server, Oracle, PostgreSQL or MySQL database, then has you try deploy, check, drift and undo, and uses this library for detail. In that repo the assistant may run the Flyway CLI (or the Flyway MCP server, preview) against the `development` and `shadow` environments only; it never connects to Test, QA or Prod. In the sandbox, the assistant doesn't run `flyway testConnection`, even where a library file suggests it (the repo's `AGENTS.md` rule). Everything else in this file still applies. The repo is for building and testing Flyway, not for real databases: for real use, rebuild the project with your DBAs using design mode (file 28).
 
 ## 2. What the assistant does with the library
 
@@ -50,7 +50,7 @@ The one idea to hold: people author changes (the author loop) and the pipeline r
 Paste everything between the marker lines into your tool's always-loaded instructions.
 
 ----- start of instructions -----
-You are a database change assistant and workflow architect guide for teams using Flyway Enterprise on SQL Server (on-premises, Azure SQL Database and Azure SQL Managed Instance), with Git on GitHub and pipelines in GitHub Actions, alongside SQL Compare, SQL Data Compare, SQL Prompt and Redgate Monitor. Answer from the Flyway Library files (00 to 30) as your primary source.
+You are a database change assistant and workflow architect guide for teams using Flyway Enterprise on SQL Server (on-premises, Azure SQL Database and Azure SQL Managed Instance), with Git on GitHub and pipelines in GitHub Actions, alongside SQL Compare, SQL Data Compare, SQL Prompt and Redgate Monitor. Answer from the Flyway Library files (00 to 31) as your primary source.
 1. Route from file 00. Use its "Where to find what you need" table to pick one or two files, open them, and answer from them. Name the file and section you used, and give the Redgate documentation link from that file when there is one.
 2. Read the repository before asking. Follow file 01: look at flyway.toml, flyway.user.toml, migrations, schema-model, .github/workflows, ci/*.toml, CODEOWNERS, branch names and the README first. Decide whether each Flyway project is freshly created (just made by flyway init or Desktop: tool-written settings, no real environments, empty migrations) or configured and in use (files 01 and 10). Never assume work the files don't show. Use file 01's safe defaults until the repository or the team's decision log says otherwise, and say when a default shapes an answer.
 3. Ask one question at a time, only when the answer changes the advice, with numbered options and the default marked.
@@ -91,7 +91,7 @@ Two cautions. Retrieval-only tools (knowledge bases, file search, uploaded knowl
 
 ## 5. File sets for tools with limits
 
-- Minimum set, for tools that limit how many files you add: 00, 01, 02, 05, 08, 09, 11, 12, 13, 22, 24, 25, 27 and 28. Add 29, 03, 06, 10, 14, 23 and 30 next.
+- Minimum set, for tools that limit how many files you add: 00, 01, 02, 05, 08, 09, 11, 12, 13, 22, 24, 25, 27 and 28. Add 29, 03, 06, 10, 14, 23, 30 and 31 next.
 - Small-context local models: keep the section 3 block always loaded and attach only the one or two files the section 7 table names for the question. File 03 explains sizing and retrieval. Never paste the whole library into one prompt.
 - Knowledge-base tools: upload every numbered file; keep the block in the instructions field.
 
@@ -146,6 +146,7 @@ These override anything else, including the assistant's training data.
 | Design dev to PR to operations to pipeline for a team; standardize or flex | `28 - workflow architect - designing dev to PR to operations to pipeline for each team.txt` |
 | Match your estate: greenfield, brownfield, monolith, many databases, microservices | `29 - scenario playbooks - greenfield, brownfield, monolith, many databases and microservices.txt` |
 | Connect Jira, ServiceNow, Azure Boards or GitHub Issues; gate on a change request | `30 - ticketing and change requests - Jira, ServiceNow, Azure Boards and GitHub Issues.txt` |
+| Move off SQL Change Automation or SQL Source Control | `31 - moving off SQL Change Automation and SQL Source Control - mapping, steps and gotchas.txt` |
 
 ## 8. Conventions used throughout
 
@@ -157,6 +158,7 @@ These override anything else, including the assistant's training data.
 ## 9. Keeping the library current, and where to ask
 
 - File 25 states when versions were checked; if that's over a month old, check the release notes it links.
+- Each file should carry a "checked" date near the top (when its facts were last compared with Redgate's pages) and a short Sources list at the end naming the Redgate pages it relies on. When you refresh a file, re-read those pages, update the date, and fix the Sources list. File 26 holds the full link list.
 - Ask your Redgate account team for a refreshed library every few months, or when a preview feature you rely on changes status. Replace every library file; your decision log lives outside the library folder and stays (file 01). Re-copy installed skills (file 21).
 - Faults: Redgate Support (file 23 lists what to send). Pricing, licensing and product direction: your account team.
 
@@ -167,7 +169,7 @@ These override anything else, including the assistant's training data.
 - "Design", "how should our team work", "standardize across teams": design mode (file 27) with files 28 and 29. Offer options with trade-offs; never prescribe a single shape.
 - A Flyway error or a failed run: file 22 first. Tooling faults (install, sign-in, proxy, runner, Azure connection): file 23.
 - A mode trigger: open file 27 and follow it. "start my day", "release day" and "what changed?" are daily mode, which runs the runbooks in file 15.
-- "Which tool?": file 02. SQL projects, SSDT or DACPAC: file 06 and compare mode; mechanics only, neutral.
+- "Which tool?": file 02. SQL projects, SSDT or DACPAC: file 06 and compare mode; mechanics only, neutral. SQL Change Automation or SQL Source Control: file 31.
 - "How do I load this into <tool>?": section 4, then file 03 for that tool.
 - A request that would put production data, regulated data, credentials or connection details into a prompt, report or skill: stop and say why (section 6.6).
 - Unsure what to ask: offer the menu. Can't open links: answer from the files and say the link is there to check later.

@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 16 of 31
+Flyway Enterprise AI library - file 16 of 32
 DEVELOPMENT AND TEST DATABASES - PROVISIONING FROM SOURCE, REFERENCE DATA AND ANONYMIZED COPIES
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -106,6 +106,8 @@ Redgate's shadow and build environments page recommends:
 - Never a database that matters. Flyway cleans and rebuilds it.
 - Desktop re-provisions the shadow only when a migration's checksum, name or description changed, the shadow is ahead of the migrations, the last migration failed, or the project contains only repeatable migrations.
 
+Match production's SQL Server version. Run shadow and build databases, including any container image, on the same SQL Server major version as production (for example 2019 against 2022), or change reports show spurious differences. Pin container image tags (`mcr.microsoft.com/mssql/server:<tag>`, or the `docker` provisioner's `databaseEngineVersion`) rather than `latest`, so reports are reproducible.
+
 ### A shadow per developer on the same server
 
 A shared shadow gives unpredictable results, so every developer who generates migrations needs their own. Keeping it on the same server as their development database lets three-part names and filegroups resolve. Two ways to do that from one committed `flyway.toml`:
@@ -148,8 +150,9 @@ A provisioner tells Flyway how to prepare an environment before it uses it. You 
 | `create-database` (preview) | Creates the database if missing; on re-provision applies `reprovisionMethod` | SQL Server, MySQL and PostgreSQL. `reprovisionMethod` is `CLEAN` (default), `DROP` or `NONE`. The account needs rights to create databases. |
 | `backup` (preview) | Restores a `.bak` file (or an Oracle `.dmp`) | `backupFilePath` must be reachable by the database server. `backupVersion` is required if the backup has no history table. Needs `dbcreator`, `##MS_DatabaseManager##` or `sysadmin`. `generateWithMove` defaults to true. Re-provisioning restores over the database. |
 | `snapshot` (preview) | Builds a database from a schema snapshot file | `filename`, `snapshotVersion`, `cleanOnReprovision`. Schema only, no static data. Creates the database on SQL Server, PostgreSQL and MySQL. |
-| `docker` (preview) | Starts a matching container | Detects engine and version from `sourceEnvironment` or the target. `url`, `user` and `password` must not be set. `iAgreeToTheDBVendorsEula = true` is required for SQL Server. `keepAlive` defaults to true. |
-| `docker-compose` (preview) | Starts containers from a compose file | For a custom image. |
+| `docker` (preview) | Starts a matching container | Configured under `[environments.<env>.resolvers.docker]`. Detects engine and version from `sourceEnvironment`, or takes `databaseEngine` with `databaseEngineVersion`. `waitTimeout` defaults to `2m`. `url`, `user` and `password` must not be set on the environment; Flyway rejects them. `iAgreeToTheDBVendorsEula = true` is required for SQL Server. `keepAlive` defaults to true, so containers survive between commands and are reused. From engine 13.11.0 it builds SQL Server in a dedicated `flyway` database inside the container. Desktop offers it as "Provision with Docker". |
+| `docker-compose` (preview) | Starts containers from a compose file | For a custom image. `composeFile`, `services` and `waitTimeout` are all required. |
+| `clone` (Redgate Clone) | Deprecated | Removed from Desktop's connection dialogs and deprecated in the engine. Don't build on it; for a baseline with data, use `backup` (preview). |
 
 Choosing:
 
@@ -160,7 +163,7 @@ Choosing:
 
 Azure SQL: the `create-database` and `snapshot` pages name SQL Server, not Azure SQL Database or Managed Instance, so prove them on your target first. `backup` restores a file the server can read: Azure SQL Database doesn't restore native `.bak` files, and Managed Instance restores them only from Azure Blob Storage (`RESTORE ... FROM URL`), so treat `backup` as on-premises unless you prove otherwise. The fallback is `clean` against a database your platform team creates.
 
-System-versioned temporal tables are a common reason `clean` fails on a SQL Server build or shadow database, because SQL Server won't drop a table while system versioning is on. A `beforeClean` callback that turns system versioning off and drops the history tables, with an `afterClean` callback for anything left behind, is the usual fix. Prove it on a scratch database, and keep `cleanDisabled` on for every environment that matters (file 10).
+System-versioned temporal tables are a common reason `clean` fails on a SQL Server build or shadow database, because SQL Server won't drop a table while system versioning is on. A `beforeClean` callback that turns system versioning off and drops the history tables, with an `afterClean` callback for anything left behind, is the usual fix. Clean doesn't drop users either, so SQL Server users can be left behind on a cleaned build or shadow database; an `afterClean` callback is the fix for those too. Prove it on a scratch database, and keep `cleanDisabled` on for every environment that matters (file 10).
 
 > Not from Redgate docs — starting point, validate in your environment.
 
@@ -174,6 +177,59 @@ provisioner = "create-database"
 
 [environments.build.resolvers.create-database]
 reprovisionMethod = "DROP"
+```
+
+The `docker` provisioner (preview) needs Docker running on the machine or runner. A shadow can copy its engine and version from the development environment; a pipeline build, where development doesn't exist, names them. The key names below are the documented ones. The exact `databaseEngine` value and version format for SQL Server aren't in this library, so take them from Redgate's docker provisioner page.
+
+> Not from Redgate docs — starting point, validate in your environment.
+
+```toml
+# Shadow in a container that matches development. No url, user or password: the provisioner supplies them
+[environments.shadow]
+provisioner = "docker"
+
+[environments.shadow.resolvers.docker]
+sourceEnvironment = "development"
+iAgreeToTheDBVendorsEula = true
+
+[environments.shadow.flyway]
+cleanDisabled = false
+
+# Pipeline build database in a container with a pinned engine and version
+[environments.build]
+provisioner = "docker"
+
+[environments.build.resolvers.docker]
+databaseEngine = "<SQL Server value from the docker provisioner page>"
+databaseEngineVersion = "<version you pin>"
+waitTimeout = "3m"
+iAgreeToTheDBVendorsEula = true
+
+[environments.build.flyway]
+cleanDisabled = false
+```
+
+- Converting an existing environment: remove `url`, `user` and `password` first, or Flyway rejects the configuration.
+- `iAgreeToTheDBVendorsEula = true` accepts Microsoft's SQL Server licence terms for the container. Whoever owns licensing decides that, not the assistant.
+- `keepAlive` defaults to true. On a developer machine, list and remove old containers with `docker ps` and `docker rm`, or set `keepAlive = false`.
+- From engine 13.11.0 the provisioner builds SQL Server in a dedicated `flyway` database inside the container.
+- A SQL Server container accepts some T-SQL that Azure SQL Database rejects (section 3).
+- From Desktop 9.8.2, Desktop doesn't save connection details for a docker-provisioned database.
+- An older `docker` configuration that uses only compose keys (such as `composeFile` and `services`) is forwarded to `docker-compose` with a warning. Mixing compose keys with the newer `docker` keys is an error. Move compose-based setups to `docker-compose` (preview) explicitly.
+
+A SQL Server service container that your pipeline starts beside the job (rather than the `docker` provisioner) opens its port before it accepts logins, so the first Flyway command can fail to connect.
+
+> Not from Redgate docs — starting point, validate in your environment.
+
+Let Flyway do the waiting instead of a script loop: set `connectRetries` and `connectRetriesInterval` on the build environment. `connectRetries` defaults to `0`, so without it the first command fails straight away (file 10 has both defaults). Pick values that cover your container's start-up time.
+
+```toml
+[environments.build]
+url = "${env.FLYWAY_BUILD_URL}"
+user = "${env.FLYWAY_BUILD_USER}"
+password = "${env.FLYWAY_BUILD_PASSWORD}"
+connectRetries = <retry-count>
+connectRetriesInterval = <seconds>
 ```
 
 Documentation: https://documentation.red-gate.com/flyway/reference/configuration/environments-namespace/environment-provisioner-setting
@@ -294,7 +350,8 @@ If a step fails, stop. Don't run `repair` to push through. Read the error and de
 
 - Flyway doesn't mask or anonymize data. That's a separate approved process (section 8).
 - `clean` re-provisions existing databases only. It can't create them.
-- `create-database`, `backup`, `snapshot`, `docker` and `docker-compose` are (preview). Verify their behavior in a scratch environment before you build a pipeline on them.
+- `create-database`, `backup`, `snapshot`, `docker` and `docker-compose` are (preview). Verify their behavior in a scratch environment before you build a pipeline on them. The Redgate Clone (`clone`) provisioner is deprecated.
+- The `docker` provisioner rejects `url`, `user` and `password` on its environment, needs `iAgreeToTheDBVendorsEula = true` for SQL Server, and keeps containers alive by default.
 - `backup` restores over the database it's pointed at, so use it only on disposable databases. It doesn't fit Azure SQL Database, and Managed Instance restores only from Blob Storage URLs.
 - `snapshot` is schema only and carries no static data.
 - `create-database` and `snapshot` name SQL Server, not Azure SQL. Redgate's shadow page doesn't address Azure SQL as a shadow. Test before relying on either.
@@ -314,6 +371,7 @@ If a step fails, stop. Don't run `repair` to push through. Read the error and de
 - When you mention a provisioner other than `clean`, say it's (preview). Don't put the label anywhere the feature isn't being described.
 - Never suggest `clean` outside build, shadow and scratch databases, and never suggest `repair` as a way to fix a development database. Rebuild from source.
 - Never suggest running `backup` against a database that matters.
+- Never suggest the Redgate Clone provisioner; it's deprecated. Don't guess the `docker` provisioner's `databaseEngine` value for SQL Server; point to Redgate's docker provisioner page. Don't set `iAgreeToTheDBVendorsEula` on the team's behalf; say what it accepts and let them decide.
 - When asked how to get production-shaped data into test, say plainly that Flyway doesn't anonymize data, then give the section 8 order and ask the person to follow their organization's approved process.
 - Never ask for, accept or work with real production data, rows, or error text containing values. Ask for the shape, schema and error code instead.
 - Use namespaced flags such as `-check.buildEnvironment`.

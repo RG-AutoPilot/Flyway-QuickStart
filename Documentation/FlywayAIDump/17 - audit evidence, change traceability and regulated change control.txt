@@ -1,4 +1,4 @@
-Flyway Enterprise AI library - file 17 of 31
+Flyway Enterprise AI library - file 17 of 32
 Audit evidence, change traceability and regulated change control
 Flyway reference library, October 2026. Generic guidance written for your AI assistant. It contains no data from your environment, and you shouldn't add any to these files.
 
@@ -55,6 +55,7 @@ A Flyway and GitHub pipeline answers all six from artifacts it produces anyway. 
 | Pull request approvals | A named person other than the author reviewed it | Dismissed or stale approvals matter (section 5) |
 | Environment approval log | Who approved the production job, and when | A GitHub feature. Configure it outside the workflow file |
 | Workflow run log | What the pipeline did, in order | Retained per your settings (section 6) |
+| `migrate -outputType=json` output | What that run executed: `migrationsExecuted`, the `migrations[]` list and the resulting `targetSchemaVersion` (file 12, section 15) | Capture it per run with a run-specific name; it covers only that run |
 | Dry-run report | The SQL the deploy would run (`check -dryrun`). The JSON report carries it in a `sql` field | It's a preview. Compare it with what ran |
 | Check reports | Code review findings, the changes report and drift, by object | The changes report is built from build-environment snapshots, so production drift never appears in it. Run the drift check too |
 | Snapshots and drift reports | Production matched, or didn't match, its last deployed state | Snapshot history keeps a limited number of entries (`historyLimit`, file 14). It's a recovery tool, not an archive |
@@ -106,11 +107,13 @@ Your compliance team sets how long release evidence must be kept. Then check the
 - GitHub's "Managing GitHub Actions settings for a repository" page: by default, checks, workflow runs, commit statuses, artifacts and logs are kept for 90 days. From 1 October 2026 the retention setting covers checks, workflow runs and commit statuses as well as artifacts and logs. You can set 1 to 90 days on public repositories and 1 to 400 days on private repositories, organization and enterprise policies can limit it, and a change applies only to new items. Even at the maximum, GitHub isn't a multi-year archive.
 - `actions/upload-artifact` takes `retention-days` per artifact, up to the repository's setting.
 - Redgate's checks and deploy actions upload report artifacts with a default of 7 days. The inputs are `pre-deployment-report-retention-days` (checks), `deployment-report-retention-days` (deploy) and `drift-resolution-scripts-retention-days` (both). Set them explicitly. The deploy action's README says it uploads the deployment report when drift is detected, so don't rely on it as your only record of a clean deploy.
+- Flyway reports keep no history from engine 12.0.0: each run overwrites the report file. Archive every run's HTML and JSON reports with a run-specific name, and don't pass `-check.generateReport=false` in a pipeline whose reports are evidence.
+- The JSON report carries a `schemaVersion` field, and engine 13.9.0 switched to a new report implementation by default. Record the schema version with the archived reports, and re-check any tooling that reads them after an upgrade.
 - Copy the evidence pack to your records system as the last step of every production run. It's your system of record, and GitHub is the working copy.
 - Never rewrite main. Protect release tags with a ruleset.
 - The schema history table and snapshots live in each database. Snapshot history is a recovery tool.
 - Flyway Insights states no retention period (file 18). Don't make it your record.
-- If security operations wants every production change in its SIEM, forward each run's `-outputType=json` output and report JSON with your usual log shipping. Flyway reports the script that failed, not every statement that ran before it, and statement-level execution logging isn't a documented Flyway feature. Where you need that level, use SQL Server's own auditing on the production database.
+- If security operations wants every production change in its SIEM, forward each run's `-outputType=json` output and report JSON with your usual log shipping. From engine 13.2.0 the JSON timestamps carry a UTC offset, so check your parser. Flyway reports the script that failed, not every statement that ran before it, and statement-level execution logging isn't a documented Flyway feature. Where you need that level, use SQL Server's own auditing on the production database.
 - Flyway has no append-only, tamper-evident audit log separate from the schema history table. Your records system, holding the evidence pack, plays that role.
 
 ## 7. The per-release evidence pack
