@@ -115,7 +115,7 @@ Setup progress
 
 Each step is one line with its source file. Build the card from that file.
 
-Sandbox repo shortcut: in the Flyway Setup Sandbox repository, "start", "set up" and "fast start" run the setup skill (`.claude/skills/flyway-setup/SKILL.md`) instead of track S. It covers the same ground on the user's own databases in 12 steps: prerequisites, environments, filters, schema model, baseline (Backup as Baseline by default), a generated test migration, and pipelines. Record progress in `Documentation/project-profile.md`.
+Sandbox repo shortcut: in the Flyway Setup Sandbox repository, "start", "set up" and "fast start" run the setup skill (`.claude/skills/flyway-setup/SKILL.md`) instead of track S. It covers the same ground on structure-only copies of the user's own database: prerequisites, sandbox databases, environments, schema model, baseline (Backup as Baseline on SQL Server or a Data Pump dump on Oracle, from a structure-only copy of their database or their own backup file; a baseline script only where a backup isn't possible), a generated migration, hands-on deploy, check, drift and undo, and optional pipelines. Record progress in `Documentation/project-profile.md`.
 
 Track S: Fast start. Goal 1: a green pull request check. Goal 2: a dry-run preview a DBA has read. Real `migrate` stays off. Don't move on until the step's check passes.
 - S1. Git works (04). Check: `where.exe git` returns one path; `git fetch` and a push to a throwaway branch work outside Flyway.
